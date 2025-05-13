@@ -1,5 +1,9 @@
 # Interactive Garden
 
+Children toy for kids first and second grade.
+RFID Reader below each position on a game board. RFID Tags in every object to be placed on the positions. Controller detects which object is placed on which position. It reacts by turning on a specific color on placed led rings.
+
+
 ## Components Required
 - Arduino Uno
 - RFID Reader (e.g., MFRC522)
