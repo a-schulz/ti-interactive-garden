@@ -26,11 +26,16 @@ byte knownTag1[4] = {0xCA, 0x6E, 0xEF, 0x3F}; // First tag - green color
 byte knownTag2[4] = {0x76, 0x43, 0x42, 0x29}; // Second tag - red color
 
 // Variables to track current tag state
-bool tag1Detected = false;
-bool tag2Detected = false;
-unsigned long lastDetectionTime1 = 0;
-unsigned long lastDetectionTime2 = 0;
-const unsigned long TAG_TIMEOUT = 500; // ms to wait before considering tag gone
+bool tag1Active = false;
+bool tag2Active = false;
+unsigned long lastSuccessfulRead1 = 0;
+unsigned long lastSuccessfulRead2 = 0;
+const unsigned long READ_INTERVAL = 100;   // Try to read cards every 100ms
+const unsigned long TAG_MISSING_THRESHOLD = 500; // Consider tag gone after 500ms of no reads
+
+// Store the last detected tag colors
+byte lastTag1Red = 0, lastTag1Green = 0, lastTag1Blue = 0;
+byte lastTag2Red = 0, lastTag2Green = 0, lastTag2Blue = 0;
 
 void setup() {
     Serial.begin(9600);      // Initialize serial communications
@@ -53,32 +58,58 @@ void setup() {
 }
 
 void loop() {
-    // Check readers and update corresponding LED rings
-    bool reader1Active = checkReader(rfid1, "Reader 1", 1);
-    bool reader2Active = checkReader(rfid2, "Reader 2", 2);
+    unsigned long currentMillis = millis();
     
-    // Check timeout for reader 1
-    if (!reader1Active) {
-        if (tag1Detected && (millis() - lastDetectionTime1 > TAG_TIMEOUT)) {
-            Serial.println("Reader 1 - No tag detected");
-            tag1Detected = false;
-            setRingColor(ring1, 0, 0, 0); // Turn off
+    // Check readers at regular intervals - prevents too frequent reads
+    static unsigned long lastReadAttempt1 = 0;
+    static unsigned long lastReadAttempt2 = 0;
+    
+    // Try reader 1
+    if (currentMillis - lastReadAttempt1 >= READ_INTERVAL) {
+        lastReadAttempt1 = currentMillis;
+        
+        if (checkAndUpdateReader(rfid1, "Reader 1", 1)) {
+            lastSuccessfulRead1 = currentMillis;
+            if (!tag1Active) {
+                tag1Active = true;
+                Serial.println("Reader 1 - Tag detected");
+            }
         }
     }
     
-    // Check timeout for reader 2
-    if (!reader2Active) {
-        if (tag2Detected && (millis() - lastDetectionTime2 > TAG_TIMEOUT)) {
-            Serial.println("Reader 2 - No tag detected");
-            tag2Detected = false;
-            setRingColor(ring2, 0, 0, 0); // Turn off
+    // Try reader 2
+    if (currentMillis - lastReadAttempt2 >= READ_INTERVAL) {
+        lastReadAttempt2 = currentMillis;
+        
+        if (checkAndUpdateReader(rfid2, "Reader 2", 2)) {
+            lastSuccessfulRead2 = currentMillis;
+            if (!tag2Active) {
+                tag2Active = true;
+                Serial.println("Reader 2 - Tag detected");
+            }
         }
+    }
+    
+    // Check if tags are still present
+    if (tag1Active && (currentMillis - lastSuccessfulRead1 > TAG_MISSING_THRESHOLD)) {
+        tag1Active = false;
+        Serial.println("Reader 1 - Tag removed");
+        setRingColor(ring1, 0, 0, 0); // Turn off
+    }
+    
+    if (tag2Active && (currentMillis - lastSuccessfulRead2 > TAG_MISSING_THRESHOLD)) {
+        tag2Active = false;
+        Serial.println("Reader 2 - Tag removed");
+        setRingColor(ring2, 0, 0, 0); // Turn off
     }
 }
 
-// Function to check a specific reader
-bool checkReader(MFRC522 &rfid, String readerName, int readerNum) {
-    // Look for new cards on this reader
+// Function to check the reader and update the corresponding ring if a tag is detected
+bool checkAndUpdateReader(MFRC522 &rfid, String readerName, int readerNum) {
+    // Reset the RFID module
+    rfid.PCD_Init();
+    
+    // Look for cards
     if (!rfid.PICC_IsNewCardPresent()) {
         return false;
     }
@@ -88,43 +119,57 @@ bool checkReader(MFRC522 &rfid, String readerName, int readerNum) {
         return false;
     }
     
-    // Tag detected, update tracking based on which reader
-    if (readerNum == 1) {
-        tag1Detected = true;
-        lastDetectionTime1 = millis();
-    } else {
-        tag2Detected = true;
-        lastDetectionTime2 = millis();
-    }
-    
-    // Display UID in Serial Monitor
-    Serial.print(readerName + " - RFID Tag UID:");
-    for (byte i = 0; i < rfid.uid.size; i++) {
-        Serial.print(rfid.uid.uidByte[i], HEX);
-        Serial.print(" ");
-    }
-    Serial.println();
-    
-    // Select which ring to use based on the reader number
-    Adafruit_NeoPixel& currentRing = (readerNum == 1) ? ring1 : ring2;
-    
-    // Check if it's our first tag
-    if (compareUID(rfid.uid.uidByte, knownTag1)) {
-        Serial.println(readerName + " - Green tag detected!");
-        setRingColor(currentRing, 0, 255, 0);  // Set ring to green
-    }
-    // Check if it's our second tag
-    else if (compareUID(rfid.uid.uidByte, knownTag2)) {
-        Serial.println(readerName + " - Red tag detected!");
-        setRingColor(currentRing, 255, 0, 0);  // Set ring to red
-    }
-    else {
-        Serial.println(readerName + " - Unknown tag");
-        // Rainbow effect for unknown tag
-        for (int i = 0; i < 3; i++) {
-            rainbowCycle(currentRing, 10);
+    // Display UID in Serial Monitor if it's a new detection
+    if ((readerNum == 1 && !tag1Active) || (readerNum == 2 && !tag2Active)) {
+        Serial.print(readerName + " - RFID Tag UID:");
+        for (byte i = 0; i < rfid.uid.size; i++) {
+            Serial.print(rfid.uid.uidByte[i], HEX);
+            Serial.print(" ");
         }
-        setRingColor(currentRing, 0, 0, 255);  // Blue for unknown
+        Serial.println();
+        
+        // Select which ring to use based on the reader number
+        Adafruit_NeoPixel& currentRing = (readerNum == 1) ? ring1 : ring2;
+        
+        // Check if it's our first tag
+        if (compareUID(rfid.uid.uidByte, knownTag1)) {
+            Serial.println(readerName + " - Green tag detected!");
+            setRingColor(currentRing, 0, 255, 0);  // Set ring to green
+            
+            // Store the color
+            if (readerNum == 1) {
+                lastTag1Red = 0; lastTag1Green = 255; lastTag1Blue = 0;
+            } else {
+                lastTag2Red = 0; lastTag2Green = 255; lastTag2Blue = 0;
+            }
+        }
+        // Check if it's our second tag
+        else if (compareUID(rfid.uid.uidByte, knownTag2)) {
+            Serial.println(readerName + " - Red tag detected!");
+            setRingColor(currentRing, 255, 0, 0);  // Set ring to red
+            
+            // Store the color
+            if (readerNum == 1) {
+                lastTag1Red = 255; lastTag1Green = 0; lastTag1Blue = 0;
+            } else {
+                lastTag2Red = 255; lastTag2Green = 0; lastTag2Blue = 0;
+            }
+        }
+        else {
+            Serial.println(readerName + " - Unknown tag");
+            // Rainbow effect for unknown tag
+            for (int i = 0; i < 3; i++) {
+                rainbowCycle(currentRing, 10);
+            }
+            setRingColor(currentRing, 0, 0, 255);  // Blue for unknown
+            
+            // Store the color
+            if (readerNum == 1) {
+                lastTag1Red = 0; lastTag1Green = 0; lastTag1Blue = 255;
+            } else {
+                lastTag2Red = 0; lastTag2Green = 0; lastTag2Blue = 255;
+            }
+        }
     }
     
     rfid.PICC_HaltA(); // Halt PICC
