@@ -6,68 +6,6 @@ An interactive learning toy for first and second grade children featuring RFID t
 
 The Interactive Garden uses multiple RFID readers positioned under a game board to detect objects placed on different positions. Each object contains a unique RFID tag that identifies it to the system. When a tag is detected, an LED ring lights up with a specific color corresponding to that tag.
 
-## Project Structure
-
-- `src/main.cpp`: Main Arduino code
-- `include/`: Header files
-- `lib/`: Project-specific libraries
-- `platformio.ini`: PlatformIO configuration file
-
-## Components Required
-
-- Arduino Uno or compatible board
-- 2+ MFRC522 RFID readers (expandable system)
-- RFID tags/cards (compatible with MFRC522)
-- 2 NeoPixel LED rings with 12 LEDs each (WS2812B-based)
-- Jumper wires
-- Optional: 100-330 ohm resistors (for LED data lines)
-- Optional: 470-1000μF capacitor (for LED power stability)
-- Breadboard or custom PCB for connections
-
-## Libraries Required
-
-- **SPI.h**: For communication with RFID readers
-- **MFRC522**: For controlling the RFID readers [(Library Link)](https://github.com/miguelbalboa/rfid)
-- **Adafruit_NeoPixel**: For controlling the LED rings [(Library Link)](https://github.com/adafruit/Adafruit_NeoPixel)
-
-## Development Environment
-
-### Requirements
-
-- VS Code with PlatformIO extension
-- Arduino Uno board
-
-### Getting Started
-
-1. Open this project folder in VS Code
-2. Ensure PlatformIO extension is installed
-3. Connect your Arduino board to your computer
-4. Use the PlatformIO toolbar at the bottom of VS Code for:
-   - Building the project (checkmark icon)
-   - Uploading to Arduino (right arrow icon)
-   - Serial monitor (plug icon)
-
-### Building and Uploading
-
-- Build: Click the checkmark icon in the PlatformIO toolbar
-- Upload: Click the right arrow icon in the PlatformIO toolbar
-- Monitor: Click the plug icon to open serial monitor
-
-### Helpful VS Code + PlatformIO Tips
-
-- Use `Ctrl+Alt+U` to upload your code to the Arduino
-- Use `Ctrl+Alt+S` to open the serial monitor
-- Use PlatformIO Home (house icon) to manage libraries and boards
-
-## Installation Instructions
-
-1. **Install VS Code and PlatformIO extension** if not already installed
-2. **Install Required Libraries** through PlatformIO Library Manager:
-   - "MFRC522" 
-   - "Adafruit NeoPixel"
-3. **Wire the components** according to the wiring diagram below
-4. **Build and upload the code** using PlatformIO
-
 ## Wiring Diagram
 
 ### RFID Reader 1:

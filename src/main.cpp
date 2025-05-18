@@ -8,8 +8,11 @@
 #define RST_PIN1 9    // First reader RST
 #define SS_PIN2 7     // Second reader SS/SDA
 #define RST_PIN2 8    // Second reader RST
+#define SS_PIN3 4     // Third reader SS/SDA
+#define RST_PIN3 3    // Third reader RST
 #define LED_RING_PIN1 5  // First LED ring data input pin
 #define LED_RING_PIN2 6  // Second LED ring data input pin
+#define LED_RING_PIN3 2  // Third LED ring data input pin
 
 // Number of LEDs in the rings
 #define NUM_LEDS 12
@@ -17,10 +20,12 @@
 // Create MFRC522 instances
 MFRC522 rfid1(SS_PIN1, RST_PIN1);
 MFRC522 rfid2(SS_PIN2, RST_PIN2);
+MFRC522 rfid3(SS_PIN3, RST_PIN3);
 
 // Create LED ring instances
 Adafruit_NeoPixel ring1 = Adafruit_NeoPixel(NUM_LEDS, LED_RING_PIN1, NEO_GRB + NEO_KHZ800);
 Adafruit_NeoPixel ring2 = Adafruit_NeoPixel(NUM_LEDS, LED_RING_PIN2, NEO_GRB + NEO_KHZ800);
+Adafruit_NeoPixel ring3 = Adafruit_NeoPixel(NUM_LEDS, LED_RING_PIN3, NEO_GRB + NEO_KHZ800);
 
 // Define the known tag UIDs
 byte knownTag1[4] = {0xCA, 0x6E, 0xEF, 0x3F}; // First tag - green color
@@ -29,14 +34,17 @@ byte knownTag2[4] = {0x76, 0x43, 0x42, 0x29}; // Second tag - red color
 // Variables to track current tag state
 bool tag1Active = false;
 bool tag2Active = false;
+bool tag3Active = false;
 unsigned long lastSuccessfulRead1 = 0;
 unsigned long lastSuccessfulRead2 = 0;
+unsigned long lastSuccessfulRead3 = 0;
 const unsigned long READ_INTERVAL = 100;   // Try to read cards every 100ms
 const unsigned long TAG_MISSING_THRESHOLD = 500; // Consider tag gone after 500ms of no reads
 
 // Store the last detected tag colors
 byte lastTag1Red = 0, lastTag1Green = 0, lastTag1Blue = 0;
 byte lastTag2Red = 0, lastTag2Green = 0, lastTag2Blue = 0;
+byte lastTag3Red = 0, lastTag3Green = 0, lastTag3Blue = 0;
 
 // Function declarations
 bool checkAndUpdateReader(MFRC522 &rfid, String readerName, int readerNum);
@@ -49,9 +57,10 @@ void setup() {
     Serial.begin(9600);      // Initialize serial communications
     SPI.begin();             // Init SPI bus
     
-    // Initialize both RFID readers
+    // Initialize RFID readers
     rfid1.PCD_Init();
     rfid2.PCD_Init();
+    rfid3.PCD_Init();
     
     // Initialize LED rings
     ring1.begin();
@@ -62,7 +71,11 @@ void setup() {
     ring2.show();  // Initialize all pixels to 'off'
     ring2.setBrightness(50);  // Set brightness (0-255)
     
-    Serial.println("Place your RFID tag near either reader...");
+    ring3.begin();
+    ring3.show();  // Initialize all pixels to 'off'
+    ring3.setBrightness(50);  // Set brightness (0-255)
+    
+    Serial.println("Place your RFID tag near any reader...");
 }
 
 void loop() {
@@ -71,6 +84,7 @@ void loop() {
     // Check readers at regular intervals - prevents too frequent reads
     static unsigned long lastReadAttempt1 = 0;
     static unsigned long lastReadAttempt2 = 0;
+    static unsigned long lastReadAttempt3 = 0;
     
     // Try reader 1
     if (currentMillis - lastReadAttempt1 >= READ_INTERVAL) {
@@ -98,6 +112,19 @@ void loop() {
         }
     }
     
+    // Try reader 3
+    if (currentMillis - lastReadAttempt3 >= READ_INTERVAL) {
+        lastReadAttempt3 = currentMillis;
+        
+        if (checkAndUpdateReader(rfid3, "Reader 3", 3)) {
+            lastSuccessfulRead3 = currentMillis;
+            if (!tag3Active) {
+                tag3Active = true;
+                Serial.println("Reader 3 - Tag detected");
+            }
+        }
+    }
+    
     // Check if tags are still present
     if (tag1Active && (currentMillis - lastSuccessfulRead1 > TAG_MISSING_THRESHOLD)) {
         tag1Active = false;
@@ -109,6 +136,12 @@ void loop() {
         tag2Active = false;
         Serial.println("Reader 2 - Tag removed");
         setRingColor(ring2, 0, 0, 0); // Turn off
+    }
+    
+    if (tag3Active && (currentMillis - lastSuccessfulRead3 > TAG_MISSING_THRESHOLD)) {
+        tag3Active = false;
+        Serial.println("Reader 3 - Tag removed");
+        setRingColor(ring3, 0, 0, 0); // Turn off
     }
 }
 
@@ -127,8 +160,18 @@ bool checkAndUpdateReader(MFRC522 &rfid, String readerName, int readerNum) {
         return false;
     }
     
+    // Check if this is a new tag detection
+    bool isNewDetection = false;
+    if (readerNum == 1) {
+        isNewDetection = !tag1Active;
+    } else if (readerNum == 2) {
+        isNewDetection = !tag2Active;
+    } else if (readerNum == 3) {
+        isNewDetection = !tag3Active;
+    }
+    
     // Display UID in Serial Monitor if it's a new detection
-    if ((readerNum == 1 && !tag1Active) || (readerNum == 2 && !tag2Active)) {
+    if (isNewDetection) {
         Serial.print(readerName + " - RFID Tag UID:");
         for (byte i = 0; i < rfid.uid.size; i++) {
             Serial.print(rfid.uid.uidByte[i], HEX);
@@ -137,7 +180,8 @@ bool checkAndUpdateReader(MFRC522 &rfid, String readerName, int readerNum) {
         Serial.println();
         
         // Select which ring to use based on the reader number
-        Adafruit_NeoPixel& currentRing = (readerNum == 1) ? ring1 : ring2;
+        Adafruit_NeoPixel& currentRing = (readerNum == 1) ? ring1 : 
+                                        ((readerNum == 2) ? ring2 : ring3);
         
         // Check if it's our first tag
         if (compareUID(rfid.uid.uidByte, knownTag1)) {
@@ -147,8 +191,10 @@ bool checkAndUpdateReader(MFRC522 &rfid, String readerName, int readerNum) {
             // Store the color
             if (readerNum == 1) {
                 lastTag1Red = 0; lastTag1Green = 255; lastTag1Blue = 0;
-            } else {
+            } else if (readerNum == 2) {
                 lastTag2Red = 0; lastTag2Green = 255; lastTag2Blue = 0;
+            } else {
+                lastTag3Red = 0; lastTag3Green = 255; lastTag3Blue = 0;
             }
         }
         // Check if it's our second tag
@@ -159,8 +205,10 @@ bool checkAndUpdateReader(MFRC522 &rfid, String readerName, int readerNum) {
             // Store the color
             if (readerNum == 1) {
                 lastTag1Red = 255; lastTag1Green = 0; lastTag1Blue = 0;
-            } else {
+            } else if (readerNum == 2) {
                 lastTag2Red = 255; lastTag2Green = 0; lastTag2Blue = 0;
+            } else {
+                lastTag3Red = 255; lastTag3Green = 0; lastTag3Blue = 0;
             }
         }
         else {
@@ -174,8 +222,10 @@ bool checkAndUpdateReader(MFRC522 &rfid, String readerName, int readerNum) {
             // Store the color
             if (readerNum == 1) {
                 lastTag1Red = 0; lastTag1Green = 0; lastTag1Blue = 255;
-            } else {
+            } else if (readerNum == 2) {
                 lastTag2Red = 0; lastTag2Green = 0; lastTag2Blue = 255;
+            } else {
+                lastTag3Red = 0; lastTag3Green = 0; lastTag3Blue = 255;
             }
         }
     }
