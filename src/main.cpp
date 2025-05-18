@@ -15,7 +15,7 @@
 #define LED_RING_PIN3 2  // Third LED ring data input pin
 
 // Number of LEDs in the rings
-#define NUM_LEDS 12
+#define NUM_LEDS 8
 
 // Create MFRC522 instances
 MFRC522 rfid1(SS_PIN1, RST_PIN1);
@@ -65,15 +65,15 @@ void setup() {
     // Initialize LED rings
     ring1.begin();
     ring1.show();  // Initialize all pixels to 'off'
-    ring1.setBrightness(50);  // Set brightness (0-255)
+    ring1.setBrightness(10);  // Set brightness (0-255)
     
     ring2.begin();
     ring2.show();  // Initialize all pixels to 'off'
-    ring2.setBrightness(50);  // Set brightness (0-255)
+    ring2.setBrightness(10);  // Set brightness (0-255)
     
     ring3.begin();
     ring3.show();  // Initialize all pixels to 'off'
-    ring3.setBrightness(50);  // Set brightness (0-255)
+    ring3.setBrightness(10);  // Set brightness (0-255)
     
     Serial.println("Place your RFID tag near any reader...");
 }
