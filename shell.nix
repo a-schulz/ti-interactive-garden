@@ -4,10 +4,10 @@ in
     packages = [pkgs.python3 pkgs.poetry];
     buildInputs = [
       pkgs.platformio
-      # optional: needed as a programmer i.e. for esp32
+      # Required for uploading to Arduino boards
       pkgs.avrdude
     ];
-    #shellHook = ''
-    #export PLATFORMIO_CORE_DIR=$PWD/.platformio
-    #'';
+#    shellHook = ''
+#    export PLATFORMIO_CORE_DIR=$PWD/.platformio
+#    '';
   }

@@ -1,1 +1,12 @@
+# Ignore everything in the .vscode folder
+.vscode/*
+
+# Except for extensions.json
+!.vscode/extensions.json
+
+# Other ignored files and folders
 .direnv
+.pio
+
+# Don't ignore PlatformIO build tools, only build artifacts
+/build

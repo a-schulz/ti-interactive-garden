@@ -1,3 +1,4 @@
+#include <Arduino.h>
 #include <SPI.h>
 #include <MFRC522.h>
 #include <Adafruit_NeoPixel.h>
@@ -36,6 +37,13 @@ const unsigned long TAG_MISSING_THRESHOLD = 500; // Consider tag gone after 500m
 // Store the last detected tag colors
 byte lastTag1Red = 0, lastTag1Green = 0, lastTag1Blue = 0;
 byte lastTag2Red = 0, lastTag2Green = 0, lastTag2Blue = 0;
+
+// Function declarations
+bool checkAndUpdateReader(MFRC522 &rfid, String readerName, int readerNum);
+bool compareUID(byte* uid1, byte* uid2);
+void setRingColor(Adafruit_NeoPixel &ring, uint8_t r, uint8_t g, uint8_t b);
+void rainbowCycle(Adafruit_NeoPixel &ring, uint8_t wait);
+uint32_t wheel(byte wheelPos);
 
 void setup() {
     Serial.begin(9600);      // Initialize serial communications

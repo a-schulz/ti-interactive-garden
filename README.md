@@ -6,6 +6,13 @@ An interactive learning toy for first and second grade children featuring RFID t
 
 The Interactive Garden uses multiple RFID readers positioned under a game board to detect objects placed on different positions. Each object contains a unique RFID tag that identifies it to the system. When a tag is detected, an LED ring lights up with a specific color corresponding to that tag.
 
+## Project Structure
+
+- `src/main.cpp`: Main Arduino code
+- `include/`: Header files
+- `lib/`: Project-specific libraries
+- `platformio.ini`: PlatformIO configuration file
+
 ## Components Required
 
 - Arduino Uno or compatible board
@@ -23,15 +30,43 @@ The Interactive Garden uses multiple RFID readers positioned under a game board 
 - **MFRC522**: For controlling the RFID readers [(Library Link)](https://github.com/miguelbalboa/rfid)
 - **Adafruit_NeoPixel**: For controlling the LED rings [(Library Link)](https://github.com/adafruit/Adafruit_NeoPixel)
 
+## Development Environment
+
+### Requirements
+
+- VS Code with PlatformIO extension
+- Arduino Uno board
+
+### Getting Started
+
+1. Open this project folder in VS Code
+2. Ensure PlatformIO extension is installed
+3. Connect your Arduino board to your computer
+4. Use the PlatformIO toolbar at the bottom of VS Code for:
+   - Building the project (checkmark icon)
+   - Uploading to Arduino (right arrow icon)
+   - Serial monitor (plug icon)
+
+### Building and Uploading
+
+- Build: Click the checkmark icon in the PlatformIO toolbar
+- Upload: Click the right arrow icon in the PlatformIO toolbar
+- Monitor: Click the plug icon to open serial monitor
+
+### Helpful VS Code + PlatformIO Tips
+
+- Use `Ctrl+Alt+U` to upload your code to the Arduino
+- Use `Ctrl+Alt+S` to open the serial monitor
+- Use PlatformIO Home (house icon) to manage libraries and boards
+
 ## Installation Instructions
 
-1. **Install Arduino IDE** if not already installed
-2. **Install Required Libraries**:
-   - Go to Sketch > Include Library > Manage Libraries
-   - Search for and install "MFRC522" 
-   - Search for and install "Adafruit NeoPixel"
+1. **Install VS Code and PlatformIO extension** if not already installed
+2. **Install Required Libraries** through PlatformIO Library Manager:
+   - "MFRC522" 
+   - "Adafruit NeoPixel"
 3. **Wire the components** according to the wiring diagram below
-4. **Upload the code** from reader.ino to your Arduino
+4. **Build and upload the code** using PlatformIO
 
 ## Wiring Diagram
 
@@ -67,7 +102,7 @@ The Interactive Garden uses multiple RFID readers positioned under a game board 
 
 ## Code Description
 
-The Arduino sketch in reader.ino performs the following functions:
+The Arduino sketch performs the following functions:
 
 1. **Initialization**: Sets up RFID readers and LED rings
 2. **Tag Detection**: Continuously scans for RFID tags on both readers
