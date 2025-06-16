@@ -10,22 +10,21 @@
 #define RST_PIN2 8    // Second reader RST
 #define SS_PIN3 4     // Third reader SS/SDA
 #define RST_PIN3 3    // Third reader RST
-#define LED_RING_PIN1 5  // First LED ring data input pin
-#define LED_RING_PIN2 6  // Second LED ring data input pin
-#define LED_RING_PIN3 2  // Third LED ring data input pin
+#define LED_RING_PIN 5  // LED data input pin
 
 // Number of LEDs in the rings
-#define NUM_LEDS 8
+#define NUM_LEDS_PER_RING 12
+#define NUM_RINGS 8
+#define TOTAL_LEDS (NUM_LEDS_PER_RING * NUM_RINGS)
 
 // Create MFRC522 instances
 MFRC522 rfid1(SS_PIN1, RST_PIN1);
 MFRC522 rfid2(SS_PIN2, RST_PIN2);
 MFRC522 rfid3(SS_PIN3, RST_PIN3);
 
-// Create LED ring instances
-Adafruit_NeoPixel ring1 = Adafruit_NeoPixel(NUM_LEDS, LED_RING_PIN1, NEO_GRB + NEO_KHZ800);
-Adafruit_NeoPixel ring2 = Adafruit_NeoPixel(NUM_LEDS, LED_RING_PIN2, NEO_GRB + NEO_KHZ800);
-Adafruit_NeoPixel ring3 = Adafruit_NeoPixel(NUM_LEDS, LED_RING_PIN3, NEO_GRB + NEO_KHZ800);
+// Create single LED strip instance for all rings
+Adafruit_NeoPixel strip = Adafruit_NeoPixel(TOTAL_LEDS, LED_RING_PIN, NEO_GRB + NEO_KHZ800);
+
 
 // Define the known tag UIDs
 byte knownTag1[4] = {0xCA, 0x6E, 0xEF, 0x3F}; // First tag - green color
@@ -49,8 +48,8 @@ byte lastTag3Red = 0, lastTag3Green = 0, lastTag3Blue = 0;
 // Function declarations
 bool checkAndUpdateReader(MFRC522 &rfid, String readerName, int readerNum);
 bool compareUID(byte* uid1, byte* uid2);
-void setRingColor(Adafruit_NeoPixel &ring, uint8_t r, uint8_t g, uint8_t b);
-void rainbowCycle(Adafruit_NeoPixel &ring, uint8_t wait);
+void setRingColor(int ringNumber, uint8_t r, uint8_t g, uint8_t b);
+void rainbowCycle(int ringNumber, uint8_t wait);
 uint32_t wheel(byte wheelPos);
 
 void setup() {
@@ -62,18 +61,10 @@ void setup() {
     rfid2.PCD_Init();
     rfid3.PCD_Init();
     
-    // Initialize LED rings
-    ring1.begin();
-    ring1.show();  // Initialize all pixels to 'off'
-    ring1.setBrightness(10);  // Set brightness (0-255)
-    
-    ring2.begin();
-    ring2.show();  // Initialize all pixels to 'off'
-    ring2.setBrightness(10);  // Set brightness (0-255)
-    
-    ring3.begin();
-    ring3.show();  // Initialize all pixels to 'off'
-    ring3.setBrightness(10);  // Set brightness (0-255)
+    // Initialize LED
+    strip.begin();
+    strip.show();  // Initialize all pixels to 'off'
+    strip.setBrightness(10);  // Set brightness (0-255)
     
     Serial.println("Place your RFID tag near any reader...");
 }
@@ -129,19 +120,19 @@ void loop() {
     if (tag1Active && (currentMillis - lastSuccessfulRead1 > TAG_MISSING_THRESHOLD)) {
         tag1Active = false;
         Serial.println("Reader 1 - Tag removed");
-        setRingColor(ring1, 0, 0, 0); // Turn off
+        setRingColor(1, 0, 0, 0); // Turn off
     }
     
     if (tag2Active && (currentMillis - lastSuccessfulRead2 > TAG_MISSING_THRESHOLD)) {
         tag2Active = false;
         Serial.println("Reader 2 - Tag removed");
-        setRingColor(ring2, 0, 0, 0); // Turn off
+        setRingColor(2, 0, 0, 0); // Turn off
     }
     
     if (tag3Active && (currentMillis - lastSuccessfulRead3 > TAG_MISSING_THRESHOLD)) {
         tag3Active = false;
         Serial.println("Reader 3 - Tag removed");
-        setRingColor(ring3, 0, 0, 0); // Turn off
+        setRingColor(3, 0, 0, 0); // Turn off
     }
 }
 
@@ -180,8 +171,7 @@ bool checkAndUpdateReader(MFRC522 &rfid, String readerName, int readerNum) {
         Serial.println();
         
         // Select which ring to use based on the reader number
-        Adafruit_NeoPixel& currentRing = (readerNum == 1) ? ring1 : 
-                                        ((readerNum == 2) ? ring2 : ring3);
+        int currentRing = readerNum;
 
         // Print uuid of the current tag
         Serial.print("Current tag UID: ");
@@ -254,20 +244,23 @@ bool compareUID(byte* uid1, byte* uid2) {
 }
 
 // Set all pixels in the specified ring to the same color
-void setRingColor(Adafruit_NeoPixel &ring, uint8_t r, uint8_t g, uint8_t b) {
-    for (int i = 0; i < NUM_LEDS; i++) {
-        ring.setPixelColor(i, ring.Color(r, g, b));
+void setRingColor(int ringNumber, uint8_t r, uint8_t g, uint8_t b) {
+    int startLED = (ringNumber - 1) * NUM_LEDS_PER_RING;
+    
+    for (int i = 0; i < NUM_LEDS_PER_RING; i++) {
+        strip.setPixelColor(startLED + i, strip.Color(r, g, b));
     }
-    ring.show();
+    strip.show();
 }
 
-// Rainbow cycle effect for unknown tags on the specified ring
-void rainbowCycle(Adafruit_NeoPixel &ring, uint8_t wait) {
+// Rainbow cycle effect for the specified ring
+void rainbowCycle(int ringNumber, uint8_t wait) {
+    int startLED = (ringNumber - 1) * NUM_LEDS_PER_RING;
     for (int j = 0; j < 256; j++) {
-        for (int i = 0; i < NUM_LEDS; i++) {
-            ring.setPixelColor(i, wheel(((i * 256 / NUM_LEDS) + j) & 255));
+        for (int i = 0; i < NUM_LEDS_PER_RING; i++) {
+            strip.setPixelColor(startLED + i, wheel(((i * 256 / NUM_LEDS_PER_RING) + j) & 255));
         }
-        ring.show();
+        strip.show();
         delay(wait);
     }
 }
@@ -277,12 +270,12 @@ void rainbowCycle(Adafruit_NeoPixel &ring, uint8_t wait) {
 uint32_t wheel(byte wheelPos) {
     wheelPos = 255 - wheelPos;
     if (wheelPos < 85) {
-        return ring1.Color(255 - wheelPos * 3, 0, wheelPos * 3);
+        return strip.Color(255 - wheelPos * 3, 0, wheelPos * 3);
     }
     if (wheelPos < 170) {
         wheelPos -= 85;
-        return ring1.Color(0, wheelPos * 3, 255 - wheelPos * 3);
+        return strip.Color(0, wheelPos * 3, 255 - wheelPos * 3);
     }
     wheelPos -= 170;
-    return ring1.Color(wheelPos * 3, 255 - wheelPos * 3, 0);
+    return strip.Color(wheelPos * 3, 255 - wheelPos * 3, 0);
 }
