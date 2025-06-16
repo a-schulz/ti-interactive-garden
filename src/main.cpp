@@ -182,6 +182,14 @@ bool checkAndUpdateReader(MFRC522 &rfid, String readerName, int readerNum) {
         // Select which ring to use based on the reader number
         Adafruit_NeoPixel& currentRing = (readerNum == 1) ? ring1 : 
                                         ((readerNum == 2) ? ring2 : ring3);
+
+        // Print uuid of the current tag
+        Serial.print("Current tag UID: ");
+        for (byte i = 0; i < rfid.uid.size; i++) {
+            Serial.print(rfid.uid.uidByte[i], HEX);
+            Serial.print(" ");
+        }
+        Serial.println();
         
         // Check if it's our first tag
         if (compareUID(rfid.uid.uidByte, knownTag1)) {
