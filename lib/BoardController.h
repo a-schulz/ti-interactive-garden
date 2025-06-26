@@ -35,6 +35,9 @@ public:
     // Get environment attributes at position
     uint8_t getAttributesAt(uint8_t row, uint8_t col);
     
+    // Get the position information for a specific reader
+    GridPosition* getReaderPosition(uint8_t readerIndex);
+    
     // Visual effects for feedback
     void showLikesEffect(uint8_t readerNum);
     void showDislikesEffect(uint8_t readerNum);
@@ -45,6 +48,9 @@ public:
     void pulseEffect(uint8_t readerNum, uint8_t r, uint8_t g, uint8_t b);
     void growthEffect(uint8_t readerNum, uint8_t targetReaderNum);
     void rainbowEffect(uint8_t readerNum, uint8_t duration);
+    
+    // Direct LED control for testing
+    void setRingColor(uint8_t readerNum, uint8_t r, uint8_t g, uint8_t b);
 
 private:
     MFRC522 readers[NUM_READERS];
@@ -64,9 +70,8 @@ private:
     void evaluatePlantInteractions(uint8_t readerNum);
     
     // LED control
-    void setRingColor(uint8_t readerNum, uint8_t r, uint8_t g, uint8_t b);
     void setRingColorWithBrightness(uint8_t readerNum, uint8_t r, uint8_t g, uint8_t b, uint8_t brightness);
     uint16_t getRingStartLED(uint8_t readerNum);
 };
 
-#endif // BOARD_CONTROLLER_Hs
+#endif // BOARD_CONTROLLER_H

@@ -142,6 +142,13 @@ uint8_t BoardController::getAttributesAt(uint8_t row, uint8_t col) {
     return NONE;
 }
 
+GridPosition* BoardController::getReaderPosition(uint8_t readerIndex) {
+    if (readerIndex < NUM_READERS) {
+        return readerPositions[readerIndex];
+    }
+    return nullptr;
+}
+
 void BoardController::showLikesEffect(uint8_t readerNum) {
     // Pulsing green effect for positive feedback
     for (int i = 0; i < 3; i++) { // Pulse 3 times
@@ -231,8 +238,14 @@ void BoardController::initializeGrid() {
 bool BoardController::checkReader(uint8_t readerNum) {
     if (readerNum >= NUM_READERS) return false;
     
-    // Reset the reader
+    // Properly initialize SPI for this reader
+    SPI.begin();
+    
+    // Reset the reader with proper pin initialization
     readers[readerNum].PCD_Init();
+    
+    // Give the reader a moment to stabilize
+    delay(10);
     
     // Look for new cards
     if (!readers[readerNum].PICC_IsNewCardPresent()) {
@@ -266,6 +279,22 @@ bool BoardController::checkReader(uint8_t readerNum) {
         // Store UID of this tag
         memcpy(readerStates[readerNum].tagUID, readers[readerNum].uid.uidByte, 4);
         
+        // DEBUG: Print the full tag UID in hex format for comparison
+        Serial.print(F("Reader "));
+        Serial.print(readerNum + 1);
+        Serial.print(F(" - Tag UID (HEX): "));
+        for (byte i = 0; i < readers[readerNum].uid.size && i < 4; i++) {
+            if (readers[readerNum].uid.uidByte[i] < 0x10) Serial.print('0');
+            Serial.print(readers[readerNum].uid.uidByte[i], HEX);
+            if (i < 3) Serial.print(':');
+        }
+        Serial.println();
+        
+        // DEBUG: Show registered tag values for comparison
+        Serial.println(F("Known tag values:"));
+        Serial.println(F(" - Tomato: 04:53:45:3B"));
+        Serial.println(F(" - Potato: 04:DA:41:3B"));
+        
         // Identify the plant
         PlantID plantId = PlantDatabase::identifyPlantByTag(readers[readerNum].uid.uidByte);
         readerStates[readerNum].currentPlant = plantId;
@@ -273,12 +302,7 @@ bool BoardController::checkReader(uint8_t readerNum) {
         // Debug output
         Serial.print(F("Reader "));
         Serial.print(readerNum + 1);
-        Serial.print(F(" - Tag UID: "));
-        for (byte i = 0; i < readers[readerNum].uid.size; i++) {
-            Serial.print(readers[readerNum].uid.uidByte[i] < 0x10 ? " 0" : " ");
-            Serial.print(readers[readerNum].uid.uidByte[i], HEX);
-        }
-        Serial.print(F(" - Plant: "));
+        Serial.print(F(" - Identified as: "));
         Serial.println(PlantDatabase::getPlantInfo(plantId)->name);
         
         // Set the ring color based on the plant
@@ -286,6 +310,7 @@ bool BoardController::checkReader(uint8_t readerNum) {
         setRingColor(readerNum + 1, plant->color[0], plant->color[1], plant->color[2]);
     }
     
+    // Properly end the communication with this card
     readers[readerNum].PICC_HaltA(); // Halt PICC
     readers[readerNum].PCD_StopCrypto1(); // Stop encryption
     
