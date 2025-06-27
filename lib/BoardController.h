@@ -7,6 +7,20 @@
 #include "BoardConfig.h"
 #include "PlantDatabase.h"
 
+// Game modes
+enum GameMode {
+    ENVIRONMENT_MODE = 0,
+    NEIGHBORS_MODE = 1,
+    COMBINED_MODE = 2
+};
+
+// Effect status for each reader
+struct EffectState {
+    bool environmentHappy;
+    bool neighborRelationshipGood;
+    unsigned long lastEffectTime;
+};
+
 // Holds the current state of a reader/position
 struct ReaderState {
     bool tagPresent;
@@ -38,6 +52,15 @@ public:
     // Get the position information for a specific reader
     GridPosition* getReaderPosition(uint8_t readerIndex);
     
+    // Change game mode
+    void changeGameMode();
+    
+    // Get current game mode
+    GameMode getCurrentGameMode() { return currentGameMode; }
+    
+    // Display current game mode on LEDs
+    void displayGameMode();
+    
     // Visual effects for feedback
     void showLikesEffect(uint8_t readerNum);
     void showDislikesEffect(uint8_t readerNum);
@@ -57,10 +80,14 @@ private:
     CRGB leds[TOTAL_LEDS];
     GridPosition grid[MATRIX_ROWS][MATRIX_COLS];
     ReaderState readerStates[NUM_READERS];
+    EffectState effectStates[NUM_READERS];
     GridPosition* readerPositions[NUM_READERS];
+    
+    GameMode currentGameMode;
     
     const unsigned long READ_INTERVAL = 100;      // Time between read attempts (ms)
     const unsigned long TAG_TIMEOUT = 500;        // Time until tag is considered removed (ms)
+    const unsigned long EFFECT_INTERVAL = 2000;   // Time between effect cycles (ms)
     
     // Initialize the grid matrix
     void initializeGrid();
@@ -68,6 +95,10 @@ private:
     // Reader handling
     bool checkReader(uint8_t readerNum);
     void evaluatePlantInteractions(uint8_t readerNum);
+    
+    // Continuous effect handling
+    void updateContinuousEffects();
+    void applyContinuousEffect(uint8_t readerNum);
     
     // LED control
     void setRingColorWithBrightness(uint8_t readerNum, uint8_t r, uint8_t g, uint8_t b, uint8_t brightness);

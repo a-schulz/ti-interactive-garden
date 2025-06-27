@@ -6,9 +6,17 @@
 // Create global board controller instance
 BoardController garden;
 
+// Button pin for changing game mode
+#define MODE_BUTTON_PIN 2  // Use digital pin 2 for the button
+
+// Button debounce parameters
+unsigned long lastDebounceTime = 0;
+unsigned long debounceDelay = 300;  // Longer debounce delay for human pressing
+
 // Forward declaration of helper function
 void processSerialCommand();
 void runDiagnosticTest();
+void checkModeButton();
 
 void setup() {
     Serial.begin(9600);
@@ -16,30 +24,40 @@ void setup() {
     
     Serial.println(F("Interactive Garden - Test Mode"));
     
+    // Initialize the mode button pin with internal pull-up resistor
+    pinMode(MODE_BUTTON_PIN, INPUT_PULLUP);
+    
     // Initialize the board controller
     // Note: BoardController::begin() will call PlantDatabase::initialize()
     garden.begin();
     
-    // For testing, only place the first 3 readers with strategic environments
-    // Row 0
+    // Place readers as neighbors (adjacent positions) to properly test plant relationships
     garden.placeReader(1, 0, 0, SUNNY | DRY);         // Reader 1: Sunny and Dry (Potato tolerates it, Tomato dislikes)
-    garden.placeReader(2, 0, 2, SUNNY | MOIST);       // Reader 2: Sunny and Moist (Tomato thrives, Potato tolerates)
-    garden.placeReader(3, 0, 4, SUNNY | WET);         // Reader 3: Sunny and Wet (Neither prefers this)
+    garden.placeReader(2, 0, 1, SUNNY | MOIST);       // Reader 2: Sunny and Moist (Tomato thrives, Potato tolerates)
+    garden.placeReader(3, 1, 0, SUNNY | WET);         // Reader 3: Sunny and Wet (Neither prefers this)
     
     Serial.println(F("Test Garden initialized with 3 readers!"));
     Serial.println(F("Reader 1: Sunny and Dry (Potato tolerates it, Tomato dislikes)"));
-    Serial.println(F("Reader 2: Sunny and Moist (Tomato thrives, Potato tolerates)"));
-    Serial.println(F("Reader 3: Sunny and Wet (Neither prefers this)"));
+    Serial.println(F("Reader 2: Sunny and Moist (Tomato thrives, Potato tolerates) - Adjacent to Reader 1"));
+    Serial.println(F("Reader 3: Sunny and Wet (Neither prefers this) - Adjacent to Reader 1"));
+    Serial.println(F("Readers are positioned to test neighboring plant relationships"));
+    Serial.println(F("Press the button on pin 2 to change game modes"));
     
     // Quick startup test of all LEDs
     for (int i = 1; i <= 3; i++) {
         garden.rainbowEffect(i, 50); // Brief rainbow effect on each ring
     }
     
+    // Show initial game mode
+    garden.displayGameMode();
+    
     Serial.println(F("Type 'test' for a diagnostic test or 'help' for commands"));
 }
 
 void loop() {
+    // Check if mode button is pressed
+    checkModeButton();
+    
     // Update the garden board (checks readers, handles LED effects)
     garden.update();
     
@@ -50,6 +68,25 @@ void loop() {
     
     // Small delay to prevent CPU hogging
     delay(10);
+}
+
+void checkModeButton() {
+    // Read the button state (LOW when pressed with pull-up resistor)
+    int buttonState = digitalRead(MODE_BUTTON_PIN);
+    
+    // If the button is pressed (LOW), debounce and change mode
+    if (buttonState == LOW) {
+        unsigned long currentTime = millis();
+        
+        // Check if enough time has passed since the last button press
+        if ((currentTime - lastDebounceTime) > debounceDelay) {
+            // Change the game mode
+            garden.changeGameMode();
+            
+            // Update the debounce time
+            lastDebounceTime = currentTime;
+        }
+    }
 }
 
 void runDiagnosticTest() {
@@ -94,11 +131,24 @@ void runDiagnosticTest() {
         }
     }
     
+    // 4. Show current game mode
+    Serial.print(F("\nCurrent Game Mode: "));
+    switch (garden.getCurrentGameMode()) {
+        case ENVIRONMENT_MODE:
+            Serial.println(F("Environment Check"));
+            break;
+        case NEIGHBORS_MODE:
+            Serial.println(F("Neighbors Check"));
+            break;
+        case COMBINED_MODE:
+            Serial.println(F("Combined Environment & Neighbors Check"));
+            break;
+    }
+    
     Serial.println(F("\n=== Test Complete ==="));
     Serial.println(F("Place your tomato and potato tags on different readers and observe:"));
-    Serial.println(F(" - LED colors should indicate plant type"));
-    Serial.println(F(" - Reader 2 (SUNNY|MOIST) is ideal for Tomato"));
-    Serial.println(F(" - If Tomato and Potato are on adjacent readers, they should show dislike effect"));
+    Serial.println(F(" - LED effects will show plant interactions based on current game mode"));
+    Serial.println(F(" - Press the button to cycle through different game modes"));
 }
 
 void processSerialCommand() {
@@ -108,6 +158,10 @@ void processSerialCommand() {
     if (command == "test") {
         // Run diagnostic test
         runDiagnosticTest();
+    }
+    else if (command == "mode") {
+        // Change game mode via serial command
+        garden.changeGameMode();
     }
     else if (command.startsWith("register ")) {
         // Format: "register [tag_id_hex] [plant_id]"
@@ -141,6 +195,7 @@ void processSerialCommand() {
     else if (command == "help") {
         Serial.println(F("Available commands:"));
         Serial.println(F("test - Run a diagnostic test"));
+        Serial.println(F("mode - Change game mode (same as pressing the button)"));
         Serial.println(F("register [tag_id_hex] [plant_id] - Register a new RFID tag"));
         Serial.println(F("  Plant IDs: 1=Tomato, 2=Potato, 3=Carrot, etc."));
         Serial.println(F("help - Display this help message"));

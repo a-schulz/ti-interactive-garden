@@ -27,6 +27,11 @@ void BoardController::begin() {
         readerStates[i].tagPresent = false;
         readerStates[i].lastReadTime = 0;
         readerStates[i].currentPlant = UNKNOWN;
+        
+        // Initialize effect states
+        effectStates[i].environmentHappy = false;
+        effectStates[i].neighborRelationshipGood = false;
+        effectStates[i].lastEffectTime = 0;
     }
     
     // Initialize the grid
@@ -35,7 +40,14 @@ void BoardController::begin() {
     // Initialize plant database
     PlantDatabase::initialize();
     
+    // Set default game mode
+    currentGameMode = ENVIRONMENT_MODE;
+    
     Serial.println(F("Board controller initialized"));
+    Serial.println(F("Game Mode: Environment Check"));
+    
+    // Display current game mode
+    displayGameMode();
 }
 
 void BoardController::update() {
@@ -79,6 +91,128 @@ void BoardController::update() {
             
             // Turn off the ring
             clearRing(i + 1);
+        }
+    }
+    
+    // Update continuous effects for active readers
+    updateContinuousEffects();
+}
+
+void BoardController::updateContinuousEffects() {
+    unsigned long currentMillis = millis();
+    
+    // Check each reader
+    for (uint8_t i = 0; i < NUM_READERS; i++) {
+        // Skip if this reader hasn't been placed or has no tag
+        if (readerPositions[i] == nullptr || !readerStates[i].tagPresent) {
+            continue;
+        }
+        
+        // Time to update the effect?
+        if (currentMillis - effectStates[i].lastEffectTime >= EFFECT_INTERVAL) {
+            effectStates[i].lastEffectTime = currentMillis;
+            
+            // Apply the appropriate continuous effect
+            applyContinuousEffect(i);
+        }
+    }
+}
+
+void BoardController::applyContinuousEffect(uint8_t readerNum) {
+    PlantID currentPlant = readerStates[readerNum].currentPlant;
+    if (currentPlant == UNKNOWN) return;
+    
+    GridPosition* pos = readerPositions[readerNum];
+    if (!pos) return;
+    
+    bool showEffect = false;
+    bool growthCondition = false;
+    bool dislikeCondition = false;
+    
+    // Check environment conditions if in environment or combined mode
+    if (currentGameMode == ENVIRONMENT_MODE || currentGameMode == COMBINED_MODE) {
+        bool environmentHappy = PlantDatabase::plantThrives(currentPlant, pos->attributes);
+        bool environmentOkay = PlantDatabase::plantTolerates(currentPlant, pos->attributes);
+        
+        effectStates[readerNum].environmentHappy = environmentHappy;
+        
+        if (!environmentOkay) {
+            dislikeCondition = true;
+            showEffect = true;
+        } else if (environmentHappy) {
+            growthCondition = true;
+            showEffect = true;
+        }
+    }
+    
+    // Check neighbor relationships if in neighbor or combined mode
+    if ((currentGameMode == NEIGHBORS_MODE || currentGameMode == COMBINED_MODE) && !dislikeCondition) {
+        effectStates[readerNum].neighborRelationshipGood = false;
+        bool hasNeighbor = false;
+        
+        // Check all possible neighbor positions
+        for (int8_t rowOffset = -1; rowOffset <= 1; rowOffset++) {
+            for (int8_t colOffset = -1; colOffset <= 1; colOffset++) {
+                // Skip the center (self)
+                if (rowOffset == 0 && colOffset == 0) continue;
+                
+                // Calculate neighbor position
+                uint8_t neighborRow = pos->row + rowOffset;
+                uint8_t neighborCol = pos->col + colOffset;
+                
+                // Skip if out of bounds
+                if (neighborRow >= MATRIX_ROWS || neighborCol >= MATRIX_COLS) continue;
+                
+                // Check if there's a reader at this position
+                int8_t neighborReaderIndex = grid[neighborRow][neighborCol].readerIndex;
+                if (neighborReaderIndex < 0) continue;
+                
+                // Skip if no tag on this reader
+                if (!readerStates[neighborReaderIndex].tagPresent) continue;
+                
+                hasNeighbor = true;
+                
+                // Check the relationship
+                PlantID neighborPlant = readerStates[neighborReaderIndex].currentPlant;
+                PlantRelationship relationship = PlantDatabase::getRelationship(currentPlant, neighborPlant);
+                
+                if (relationship == HATES) {
+                    dislikeCondition = true;
+                    showEffect = true;
+                    break;  // One bad relationship is enough for dislike
+                } else if (relationship == LIKES) {
+                    effectStates[readerNum].neighborRelationshipGood = true;
+                    growthCondition = true;
+                    showEffect = true;
+                }
+            }
+            if (dislikeCondition) break;  // Exit the outer loop too if we found a dislike
+        }
+        
+        // If no neighbors, don't show an effect for neighbor mode
+        if (!hasNeighbor && currentGameMode == NEIGHBORS_MODE) {
+            showEffect = false;
+        }
+    }
+    
+    // Apply the appropriate effect
+    if (showEffect) {
+        // For combined mode, we need to have both conditions good for growth
+        if (currentGameMode == COMBINED_MODE) {
+            growthCondition = effectStates[readerNum].environmentHappy && 
+                             effectStates[readerNum].neighborRelationshipGood;
+        }
+        
+        if (dislikeCondition) {
+            // Show dislike effect
+            showDislikesEffect(readerNum + 1);
+        } else if (growthCondition) {
+            // Show growth effect - for a single reader we'll just use green pulses
+            // For multiple readers we'll handle in the main loop with the growthEffect method
+            showLikesEffect(readerNum + 1);
+        } else {
+            // Neutral case
+            showNeutralEffect(readerNum + 1);
         }
     }
 }
@@ -166,8 +300,8 @@ void BoardController::showDislikesEffect(uint8_t readerNum) {
 }
 
 void BoardController::showNeutralEffect(uint8_t readerNum) {
-    // Pulsing blue effect for neutral feedback
-    pulseEffect(readerNum, 0, 0, 255);
+    // Pulsing white effect for neutral feedback
+    pulseEffect(readerNum, 255, 255, 255);
 }
 
 void BoardController::clearRing(uint8_t readerNum) {
@@ -279,22 +413,6 @@ bool BoardController::checkReader(uint8_t readerNum) {
         // Store UID of this tag
         memcpy(readerStates[readerNum].tagUID, readers[readerNum].uid.uidByte, 4);
         
-        // DEBUG: Print the full tag UID in hex format for comparison
-        Serial.print(F("Reader "));
-        Serial.print(readerNum + 1);
-        Serial.print(F(" - Tag UID (HEX): "));
-        for (byte i = 0; i < readers[readerNum].uid.size && i < 4; i++) {
-            if (readers[readerNum].uid.uidByte[i] < 0x10) Serial.print('0');
-            Serial.print(readers[readerNum].uid.uidByte[i], HEX);
-            if (i < 3) Serial.print(':');
-        }
-        Serial.println();
-        
-        // DEBUG: Show registered tag values for comparison
-        Serial.println(F("Known tag values:"));
-        Serial.println(F(" - Tomato: 04:53:45:3B"));
-        Serial.println(F(" - Potato: 04:DA:41:3B"));
-        
         // Identify the plant
         PlantID plantId = PlantDatabase::identifyPlantByTag(readers[readerNum].uid.uidByte);
         readerStates[readerNum].currentPlant = plantId;
@@ -302,12 +420,18 @@ bool BoardController::checkReader(uint8_t readerNum) {
         // Debug output
         Serial.print(F("Reader "));
         Serial.print(readerNum + 1);
-        Serial.print(F(" - Identified as: "));
+        Serial.print(F(" - Tag UID: "));
+        for (byte i = 0; i < readers[readerNum].uid.size; i++) {
+            Serial.print(readers[readerNum].uid.uidByte[i] < 0x10 ? " 0" : " ");
+            Serial.print(readers[readerNum].uid.uidByte[i], HEX);
+        }
+        Serial.print(F(" - Plant: "));
         Serial.println(PlantDatabase::getPlantInfo(plantId)->name);
         
         // Set the ring color based on the plant
         const Plant* plant = PlantDatabase::getPlantInfo(plantId);
-        setRingColor(readerNum + 1, plant->color[0], plant->color[1], plant->color[2]);
+        // Disable setting color for the plants
+        // setRingColor(readerNum + 1, plant->color[0], plant->color[1], plant->color[2]);
     }
     
     // Properly end the communication with this card
@@ -350,8 +474,24 @@ void BoardController::evaluatePlantInteractions(uint8_t readerNum) {
     }
     
     // 2. Check neighboring plants for interactions
+    Serial.println(F("Evaluating neighboring plants..."));
+    
+    // Debug info - print current plant position
+    Serial.print(F("Current plant '"));
+    Serial.print(plant->name);
+    Serial.print(F("' at position ("));
+    Serial.print(pos->row);
+    Serial.print(F(","));
+    Serial.print(pos->col);
+    Serial.println(F(")"));
+    
+    bool foundNeighbor = false;
+    
     for (uint8_t row = 0; row < MATRIX_ROWS; row++) {
         for (uint8_t col = 0; col < MATRIX_COLS; col++) {
+            // Skip if this is the same position as current plant
+            if (row == pos->row && col == pos->col) continue;
+            
             // Skip if this is not a neighboring position or has no reader
             if (!areNeighbors(pos->row, pos->col, row, col) || 
                 grid[row][col].readerIndex < 0) {
@@ -360,14 +500,45 @@ void BoardController::evaluatePlantInteractions(uint8_t readerNum) {
             
             uint8_t neighborReaderNum = grid[row][col].readerIndex;
             
+            // Debug info - found a neighboring reader
+            Serial.print(F("Found neighboring reader "));
+            Serial.print(neighborReaderNum + 1);
+            Serial.print(F(" at position ("));
+            Serial.print(row);
+            Serial.print(F(","));
+            Serial.print(col);
+            Serial.println(F(")"));
+            
             // Skip if neighbor has no tag present
-            if (!readerStates[neighborReaderNum].tagPresent) continue;
+            if (!readerStates[neighborReaderNum].tagPresent) {
+                Serial.print(F("Reader "));
+                Serial.print(neighborReaderNum + 1);
+                Serial.println(F(" has no tag present"));
+                continue;
+            }
             
             PlantID neighborPlant = readerStates[neighborReaderNum].currentPlant;
+            foundNeighbor = true;
+            
+            Serial.print(F("Reader "));
+            Serial.print(neighborReaderNum + 1);
+            Serial.print(F(" has plant: "));
+            Serial.println(PlantDatabase::getPlantInfo(neighborPlant)->name);
             
             // Evaluate relationship
             PlantRelationship relationship = PlantDatabase::getRelationship(currentPlant, neighborPlant);
-            
+            Serial.print(F("Evaluating relationship between '"));
+            Serial.print(plant->name);
+            Serial.print(F("' and '"));
+            Serial.print(PlantDatabase::getPlantInfo(neighborPlant)->name);
+            Serial.print(F("' at reader "));
+            Serial.println(neighborReaderNum + 1);
+
+            Serial.print(F("Relationship: "));
+            Serial.print(relationship == LIKES ? "LIKES" : 
+                          relationship == HATES ? "HATES" : "NEUTRAL");
+            Serial.println();
+
             if (relationship == LIKES) {
                 // Positive interaction
                 Serial.print(F("Plant '"));
@@ -389,6 +560,10 @@ void BoardController::evaluatePlantInteractions(uint8_t readerNum) {
                 showDislikesEffect(readerNum + 1);
             }
         }
+    }
+    
+    if (!foundNeighbor) {
+        Serial.println(F("No neighboring plants found"));
     }
 }
 
@@ -420,5 +595,75 @@ uint16_t BoardController::getRingStartLED(uint8_t readerNum) {
     } else {
         // Second chain (rings 5-8)
         return LEDS_PER_CHAIN + ((readerNum - 5) * NUM_LEDS_PER_RING);
+    }
+}
+
+void BoardController::changeGameMode() {
+    // Cycle through the game modes
+    switch (currentGameMode) {
+        case ENVIRONMENT_MODE:
+            currentGameMode = NEIGHBORS_MODE;
+            Serial.println(F("Game Mode changed: Neighbors Check"));
+            break;
+        case NEIGHBORS_MODE:
+            currentGameMode = COMBINED_MODE;
+            Serial.println(F("Game Mode changed: Combined Environment & Neighbors Check"));
+            break;
+        case COMBINED_MODE:
+        default:
+            currentGameMode = ENVIRONMENT_MODE;
+            Serial.println(F("Game Mode changed: Environment Check"));
+            break;
+    }
+    
+    // Display the current game mode
+    displayGameMode();
+}
+
+void BoardController::displayGameMode() {
+    // Clear all LEDs first
+    FastLED.clear();
+    
+    // Show a distinctive pattern for each game mode on any available/unused LEDs
+    switch (currentGameMode) {
+        case ENVIRONMENT_MODE:
+            // Green pattern for environment mode
+            for (int i = 0; i < NUM_READERS; i++) {
+                if (!readerStates[i].tagPresent) {
+                    // Use a green color for environment mode
+                    setRingColor(i + 1, 0, 255, 0);
+                    delay(100);
+                }
+            }
+            break;
+            
+        case NEIGHBORS_MODE:
+            // Blue pattern for neighbors mode
+            for (int i = 0; i < NUM_READERS; i++) {
+                if (!readerStates[i].tagPresent) {
+                    // Use a blue color for neighbors mode
+                    setRingColor(i + 1, 0, 0, 255);
+                    delay(100);
+                }
+            }
+            break;
+            
+        case COMBINED_MODE:
+            // Purple pattern for combined mode
+            for (int i = 0; i < NUM_READERS; i++) {
+                if (!readerStates[i].tagPresent) {
+                    // Use a purple color for combined mode
+                    setRingColor(i + 1, 255, 0, 255);
+                    delay(100);
+                }
+            }
+            break;
+    }
+    
+    // After showing the mode, reset empty rings to off
+    for (int i = 0; i < NUM_READERS; i++) {
+        if (!readerStates[i].tagPresent) {
+            clearRing(i + 1);
+        }
     }
 }
