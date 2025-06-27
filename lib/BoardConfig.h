@@ -10,12 +10,12 @@
 #define RST_PIN2 8    // Second reader RST
 #define SS_PIN3 4     // Third reader SS/SDA
 #define RST_PIN3 3    // Third reader RST
-#define SS_PIN4 6     // Fourth reader SS/SDA
-#define RST_PIN4 5    // Fourth reader RST
-#define SS_PIN5 A0    // Fifth reader SS/SDA
-#define RST_PIN5 A1   // Fifth reader RST
-#define SS_PIN6 A2    // Sixth reader SS/SDA
-#define RST_PIN6 A3   // Sixth reader RST
+#define SS_PIN4 A0     // Fourth reader SS/SDA
+#define RST_PIN4 A1    // Fourth reader RST
+#define SS_PIN5 A2    // Fifth reader SS/SDA
+#define RST_PIN5 A3   // Fifth reader RST
+#define SS_PIN6 A4    // Sixth reader SS/SDA
+#define RST_PIN6 A5   // Sixth reader RST
 
 // LED data pins
 #define LED_RING_CHAIN_PIN1 5  // LED chain 1 data pin (rings 1-4)

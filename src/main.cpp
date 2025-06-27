@@ -32,17 +32,13 @@ void setup() {
     garden.begin();
     
     // Place readers as neighbors (adjacent positions) to properly test plant relationships
-    garden.placeReader(1, 0, 0, SUNNY | DRY);         // Reader 1: Sunny and Dry (Potato tolerates it, Tomato dislikes)
-    garden.placeReader(2, 0, 1, SUNNY | MOIST);       // Reader 2: Sunny and Moist (Tomato thrives, Potato tolerates)
-    garden.placeReader(3, 1, 0, SUNNY | WET);         // Reader 3: Sunny and Wet (Neither prefers this)
-    
-    Serial.println(F("Test Garden initialized with 3 readers!"));
-    Serial.println(F("Reader 1: Sunny and Dry (Potato tolerates it, Tomato dislikes)"));
-    Serial.println(F("Reader 2: Sunny and Moist (Tomato thrives, Potato tolerates) - Adjacent to Reader 1"));
-    Serial.println(F("Reader 3: Sunny and Wet (Neither prefers this) - Adjacent to Reader 1"));
-    Serial.println(F("Readers are positioned to test neighboring plant relationships"));
-    Serial.println(F("Press the button on pin 2 to change game modes"));
-    
+    garden.placeReader(1, 2, 0, PARTIALLY_SHADED | DRY);         // Reader 1: Sunny and Dry (Potato tolerates it, Tomato dislikes)
+    garden.placeReader(2, 4, 0, PARTIALLY_SHADED | DRY);       // Reader 2: Sunny and Moist (Tomato thrives, Potato tolerates)
+    garden.placeReader(3, 5, 1, PARTIALLY_SHADED | MOIST);         // Reader 3: Sunny and Wet (Neither prefers this)
+    garden.placeReader(4, 3, 1, PARTIALLY_SHADED | MOIST);
+    garden.placeReader(5, 1, 1, PARTIALLY_SHADED | MOIST);
+    garden.placeReader(6, 2, 2, PARTIALLY_SHADED | WET);
+
     // Quick startup test of all LEDs
     for (int i = 1; i <= 3; i++) {
         garden.rainbowEffect(i, 50); // Brief rainbow effect on each ring
