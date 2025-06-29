@@ -16,13 +16,9 @@ graph TD
     RING7[LED Ring 7]
     RING8[LED Ring 8]
     
-    %% RFID Readers
+    %% RFID Readers - Only keeping 1 and 2
     RFID1[RFID Reader 1]
     RFID2[RFID Reader 2]
-    RFID3[RFID Reader 3]
-    RFID4[RFID Reader 4]
-    RFID5[RFID Reader 5]
-    RFID6[RFID Reader 6]
     
     %% Power Supply
     PWR[5V External Power Supply]
@@ -39,31 +35,6 @@ graph TD
     ARDUINO ---> |MOSI| RFID2
     ARDUINO ---> |MISO| RFID2
     ARDUINO ---> |SCK| RFID2
-    
-    ARDUINO ---> |Pin 3 to RST| RFID3
-    ARDUINO ---> |Pin 4 to SS/SDA| RFID3
-    ARDUINO ---> |MOSI| RFID3
-    ARDUINO ---> |MISO| RFID3
-    ARDUINO ---> |SCK| RFID3
-    
-    %% Arduino connections to RFID readers - Analog pins
-    ARDUINO ---> |Pin A1 to RST| RFID4
-    ARDUINO ---> |Pin A0 to SS/SDA| RFID4
-    ARDUINO ---> |MOSI| RFID4
-    ARDUINO ---> |MISO| RFID4
-    ARDUINO ---> |SCK| RFID4
-    
-    ARDUINO ---> |Pin A3 to RST| RFID5
-    ARDUINO ---> |Pin A2 to SS/SDA| RFID5
-    ARDUINO ---> |MOSI| RFID5
-    ARDUINO ---> |MISO| RFID5
-    ARDUINO ---> |SCK| RFID5
-    
-    ARDUINO ---> |Pin A5 to RST| RFID6
-    ARDUINO ---> |Pin A4 to SS/SDA| RFID6
-    ARDUINO ---> |MOSI| RFID6
-    ARDUINO ---> |MISO| RFID6
-    ARDUINO ---> |SCK| RFID6
     
     %% Arduino connection to LED Ring chains
     ARDUINO ---> |Pin 5 to DI| RING1
@@ -90,18 +61,10 @@ graph TD
     RING5 ---> |GND| ARDUINO
     RFID1 ---> |GND| ARDUINO
     RFID2 ---> |GND| ARDUINO
-    RFID3 ---> |GND| ARDUINO
-    RFID4 ---> |GND| ARDUINO
-    RFID5 ---> |GND| ARDUINO
-    RFID6 ---> |GND| ARDUINO
     
     %% Power for RFID readers
     ARDUINO ---> |3.3V| RFID1
     ARDUINO ---> |3.3V| RFID2
-    ARDUINO ---> |3.3V| RFID3
-    ARDUINO ---> |3.3V| RFID4
-    ARDUINO ---> |3.3V| RFID5
-    ARDUINO ---> |3.3V| RFID6
     
     %% Component descriptions
     subgraph "LED Ring Chains"
@@ -122,10 +85,6 @@ graph TD
     subgraph "RFID Reader Circuit"
         RFID1
         RFID2
-        RFID3
-        RFID4
-        RFID5
-        RFID6
     end
     
     %% SPI shared bus notation
