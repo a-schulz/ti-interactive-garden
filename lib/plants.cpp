@@ -5,59 +5,60 @@ Plant PlantDatabase::plants[NUM_PLANTS] = {
     // UNKNOWN
     {"Unknown", NONE, NONE, {0, 0, 255}},  // Blue for unknown
     
-    // TOMATO
-    {"Tomato", SUNNY | MOIST, PARTIALLY_SHADED | MOIST, {255, 50, 0}},  // Red-orange
-    
-    // POTATO
-    {"Potato", PARTIALLY_SHADED | MOIST, DRY | MOIST, {150, 75, 0}},  // Brown
-    
     // CARROT
-    {"Carrot", SUNNY | MOIST, SUNNY | DRY | PARTIALLY_SHADED, {255, 120, 0}},  // Orange
-    
-    // BASIL
-    {"Basil", SUNNY | MOIST, PARTIALLY_SHADED | MOIST, {0, 200, 0}},  // Green
-    
-    // PEPPER
-    {"Pepper", SUNNY | MOIST, SUNNY | DRY, {255, 0, 0}},  // Red
-    
-    // LETTUCE
-    {"Lettuce", PARTIALLY_SHADED | MOIST, SUNNY | MOIST | WET, {0, 255, 0}},  // Light green
+    {"Carrot", PARTIALLY_SHADED | MOIST, PARTIALLY_SHADED | MOIST, {255, 120, 0}},  // Orange
+
+    // TOMATO
+    {"Tomato", PARTIALLY_SHADED | WET, PARTIALLY_SHADED | WET, {255, 50, 0}},  // Red-orange
     
     // ONION
-    {"Onion", SUNNY | DRY, SUNNY | MOIST | PARTIALLY_SHADED, {255, 255, 0}},  // Yellow
+    {"Onion", PARTIALLY_SHADED | DRY, PARTIALLY_SHADED | DRY, {255, 255, 0}},  // Yellow
     
+    // POTATO
+    {"Potato", PARTIALLY_SHADED | DRY, PARTIALLY_SHADED | DRY, {150, 75, 0}},  // Brown
+    
+    // BASIL
+    {"Eggplant", PARTIALLY_SHADED | MOIST, PARTIALLY_SHADED | MOIST, {0, 200, 0}},  // Green
+    
+    // LETTUCE
+    {"Lettuce", PARTIALLY_SHADED | WET, PARTIALLY_SHADED | WET, {0, 255, 0}},  // Light green
+
+    // Pea
+    {"Pea", PARTIALLY_SHADED | MOIST, PARTIALLY_SHADED | MOIST, {0, 255, 100}},  // Green-blue
+
     // CUCUMBER
-    {"Cucumber", SUNNY | MOIST, SUNNY | WET | PARTIALLY_SHADED, {0, 255, 50}}  // Green-blue
+    {"Cucumber", PARTIALLY_SHADED | WET, PARTIALLY_SHADED | WET, {0, 255, 50}}  // Green-blue
+
 };
 
 // Plant relationship matrix (-1: hates, 0: neutral, 1: likes)
 int8_t PlantDatabase::plantRelationships[NUM_PLANTS][NUM_PLANTS] = {
-    // Unknown plant has neutral relationship with everything
+    // 0 - Unknown plant has neutral relationship with everything
     {0, 0, 0, 0, 0, 0, 0, 0, 0},
     
-    // TOMATO relationships
-    {0, 0, -1, 1, 1, 0, 0, 1, 0},  // Tomato hates potato, likes carrot and basil
+    // 1 - CARROT relationships
+    {0, 0, -1, 1, -1, -1, 1, 1, 1},
     
-    // POTATO relationships
-    {0, -1, 0, 0, -1, 0, 0, 0, 0},  // Potato hates tomato and basil
+    // 2 - TOMATO relationships
+    {0, -1, 0, 1, -1, -1, 1, -1, -1},
+
+    // 3 - ONION relationships
+    {0, 1, 1, 0, -1, 1, 1, -1, -1},
     
-    // CARROT relationships
-    {0, 1, 0, 0, 0, 0, 1, 1, 0},    // Carrot likes tomato, lettuce, onion
+    // 4 - POTATO relationships
+    {0, -1, -1, -1, 0, -1, 1, 1, -1},
     
-    // BASIL relationships
-    {0, 1, -1, 0, 0, 1, 0, 0, 0},   // Basil likes tomato, pepper
+    // 5 - EGGPLANT relationships
+    {0, -1, -1, 1, -1, 0, 1, 1, -1},
     
-    // PEPPER relationships
-    {0, 0, 0, 0, 1, 0, 0, 0, 0},    // Pepper likes basil
+    // 6 - LETTUCE relationships
+    {0, 1, 1, 1, 1, 1, 0, 1, 1},
     
-    // LETTUCE relationships
-    {0, 0, 0, 1, 0, 0, 0, 1, 0},    // Lettuce likes carrot, onion
+    // 7 - PEA relationship
+    {0, 1, -1, -1, 1, 1, 1, 0, 1},
     
-    // ONION relationships
-    {0, 1, 0, 1, 0, 0, 1, 0, -1},   // Onion likes tomato, carrot, lettuce; hates cucumber
-    
-    // CUCUMBER relationships
-    {0, 0, 0, 0, 0, 0, 0, -1, 0}    // Cucumber hates onion
+    // 8 - CUCUMBER relationships
+    {0, 1, -1, -1, -1, -1, 1, 1, 0}
 };
 
 // Start with some pre-registered RFID tags - up to 20 tags

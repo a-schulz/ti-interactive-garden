@@ -7,13 +7,13 @@
 // Plant ID enum for easy reference
 enum PlantID {
     UNKNOWN = 0,
-    TOMATO,
-    POTATO,
     CARROT,
-    BASIL,
-    PEPPER,
-    LETTUCE,
+    TOMATO,
     ONION,
+    POTATO,
+    EGGPLANT,
+    LETTUCE,
+    PEA,
     CUCUMBER,
     // Add more plants as needed
     NUM_PLANTS  // This will be the count of plants
