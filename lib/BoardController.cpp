@@ -5,13 +5,9 @@ void BoardController::begin() {
     // Initialize SPI
     SPI.begin();
     
-    // Initialize RFID readers with appropriate pins
-    readers[0].PCD_Init(SS_PIN1, RST_PIN1);
-    readers[1].PCD_Init(SS_PIN2, RST_PIN2);
-    readers[2].PCD_Init(SS_PIN3, RST_PIN3);
-    readers[3].PCD_Init(SS_PIN4, RST_PIN4);
-    readers[4].PCD_Init(SS_PIN5, RST_PIN5);
-    readers[5].PCD_Init(SS_PIN6, RST_PIN6);
+    // We now use a different approach with MISO pins
+    // that will be initialized in checkReader() when needed
+    Serial.println(F("Readers will be initialized with separate MISO pins"));
     
     // Initialize FastLED for our two LED chains
     FastLED.addLeds<WS2812B, LED_RING_CHAIN_PIN1, GRB>(leds, 0, LEDS_PER_CHAIN);
@@ -372,22 +368,53 @@ void BoardController::initializeGrid() {
 bool BoardController::checkReader(uint8_t readerNum) {
     if (readerNum >= NUM_READERS) return false;
     
-    // Properly initialize SPI for this reader
-    SPI.begin();
+    // Initialize appropriate reader with its MISO pin
+    // Using RFID1 library syntax which is different from MFRC522
+    switch (readerNum) {
+        case 0:
+            readers[readerNum].begin(COMMON_SS_PIN, 13, 11, MISO_PIN1, COMMON_SS_PIN, COMMON_RST_PIN);
+            break;
+        case 1:
+            readers[readerNum].begin(COMMON_SS_PIN, 13, 11, MISO_PIN2, COMMON_SS_PIN, COMMON_RST_PIN);
+            break;
+        case 2:
+            readers[readerNum].begin(COMMON_SS_PIN, 13, 11, MISO_PIN3, COMMON_SS_PIN, COMMON_RST_PIN);
+            break;
+        case 3:
+            readers[readerNum].begin(COMMON_SS_PIN, 13, 11, MISO_PIN4, COMMON_SS_PIN, COMMON_RST_PIN);
+            break;
+        case 4:
+            readers[readerNum].begin(COMMON_SS_PIN, 13, 11, MISO_PIN5, COMMON_SS_PIN, COMMON_RST_PIN);
+            break;
+        case 5:
+            readers[readerNum].begin(COMMON_SS_PIN, 13, 11, MISO_PIN6, COMMON_SS_PIN, COMMON_RST_PIN);
+            break;
+        default:
+            return false;
+    }
     
-    // Reset the reader with proper pin initialization
-    readers[readerNum].PCD_Init();
+    // Initialize the RFID reader
+    readers[readerNum].init();
     
     // Give the reader a moment to stabilize
-    delay(10);
+    delay(50);
     
-    // Look for new cards
-    if (!readers[readerNum].PICC_IsNewCardPresent()) {
+    // Look for cards
+    uchar status;
+    uchar str[MAX_LEN];
+    
+    // Search for a card
+    status = readers[readerNum].request(PICC_REQIDL, str);
+    if (status != MI_OK) {
         return false;
     }
     
-    // Select one of the cards
-    if (!readers[readerNum].PICC_ReadCardSerial()) {
+    // Show card type
+    // readers[readerNum].showCardType(str);
+    
+    // Get the card serial number
+    status = readers[readerNum].anticoll(str);
+    if (status != MI_OK) {
         return false;
     }
     
@@ -401,8 +428,8 @@ bool BoardController::checkReader(uint8_t readerNum) {
     // Check if it's a different tag from the previously detected one
     if (readerStates[readerNum].tagPresent) {
         isNewOrChangedTag = false;
-        for (byte i = 0; i < readers[readerNum].uid.size; i++) {
-            if (readers[readerNum].uid.uidByte[i] != readerStates[readerNum].tagUID[i]) {
+        for (byte i = 0; i < 4; i++) {
+            if (str[i] != readerStates[readerNum].tagUID[i]) {
                 isNewOrChangedTag = true;
                 break;
             }
@@ -411,32 +438,23 @@ bool BoardController::checkReader(uint8_t readerNum) {
     
     if (isNewOrChangedTag) {
         // Store UID of this tag
-        memcpy(readerStates[readerNum].tagUID, readers[readerNum].uid.uidByte, 4);
+        memcpy(readerStates[readerNum].tagUID, str, 4);
         
         // Identify the plant
-        PlantID plantId = PlantDatabase::identifyPlantByTag(readers[readerNum].uid.uidByte);
+        PlantID plantId = PlantDatabase::identifyPlantByTag(str);
         readerStates[readerNum].currentPlant = plantId;
         
         // Debug output
         Serial.print(F("Reader "));
         Serial.print(readerNum + 1);
         Serial.print(F(" - Tag UID: "));
-        for (byte i = 0; i < readers[readerNum].uid.size; i++) {
-            Serial.print(readers[readerNum].uid.uidByte[i] < 0x10 ? " 0" : " ");
-            Serial.print(readers[readerNum].uid.uidByte[i], HEX);
-        }
+        readers[readerNum].showCardID(str);
         Serial.print(F(" - Plant: "));
         Serial.println(PlantDatabase::getPlantInfo(plantId)->name);
-        
-        // Set the ring color based on the plant
-        const Plant* plant = PlantDatabase::getPlantInfo(plantId);
-        // Disable setting color for the plants
-        // setRingColor(readerNum + 1, plant->color[0], plant->color[1], plant->color[2]);
     }
     
-    // Properly end the communication with this card
-    readers[readerNum].PICC_HaltA(); // Halt PICC
-    readers[readerNum].PCD_StopCrypto1(); // Stop encryption
+    // Put the card into halt mode
+    readers[readerNum].halt();
     
     return true;
 }

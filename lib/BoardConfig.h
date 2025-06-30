@@ -3,23 +3,21 @@
 
 #include <Arduino.h>
 
-// Pin definitions for RFID readers
-#define SS_PIN1 10    // First reader SS/SDA
-#define RST_PIN1 9    // First reader RST
-#define SS_PIN2 7     // Second reader SS/SDA
-#define RST_PIN2 8    // Second reader RST
-#define SS_PIN3 4     // Third reader SS/SDA
-#define RST_PIN3 3    // Third reader RST
-#define SS_PIN4 A0     // Fourth reader SS/SDA
-#define RST_PIN4 A1    // Fourth reader RST
-#define SS_PIN5 A2    // Fifth reader SS/SDA
-#define RST_PIN5 A3   // Fifth reader RST
-#define SS_PIN6 A4    // Sixth reader SS/SDA
-#define RST_PIN6 A5   // Sixth reader RST
+// Common SPI pins for all readers
+#define COMMON_SS_PIN 10  // Shared SS pin for all readers
+#define COMMON_RST_PIN 9  // Shared Reset pin for all readers
+
+// Individual MISO pins for each reader (instead of individual SS pins)
+#define MISO_PIN1 2  // MISO pin for first reader
+#define MISO_PIN2 4  // MISO pin for second reader  
+#define MISO_PIN3 6  // MISO pin for third reader
+#define MISO_PIN4 8  // MISO pin for fourth reader
+#define MISO_PIN5 A0  // MISO pin for fifth reader
+#define MISO_PIN6 A2  // MISO pin for sixth reader
 
 // LED data pins
 #define LED_RING_CHAIN_PIN1 5  // LED chain 1 data pin (rings 1-4)
-#define LED_RING_CHAIN_PIN2 6  // LED chain 2 data pin (rings 5-8)
+#define LED_RING_CHAIN_PIN2 7  // LED chain 2 data pin (rings 5-8)
 
 // LED configuration
 #define NUM_LEDS_PER_RING 12

@@ -2,7 +2,8 @@
 #define BOARD_CONTROLLER_H
 
 #include <Arduino.h>
-#include <MFRC522.h>
+// Replace MFRC522 with RFID1 library
+#include "RFID1/rfid1.h"
 #include <FastLED.h>
 #include "BoardConfig.h"
 #include "PlantDatabase.h"
@@ -76,7 +77,8 @@ public:
     void setRingColor(uint8_t readerNum, uint8_t r, uint8_t g, uint8_t b);
 
 private:
-    MFRC522 readers[NUM_READERS];
+    // Changed from MFRC522 to RFID1
+    RFID1 readers[NUM_READERS];
     CRGB leds[TOTAL_LEDS];
     GridPosition grid[MATRIX_ROWS][MATRIX_COLS];
     ReaderState readerStates[NUM_READERS];
