@@ -64,14 +64,16 @@ int8_t PlantDatabase::plantRelationships[NUM_PLANTS][NUM_PLANTS] = {
 // Start with some pre-registered RFID tags - up to 20 tags
 TagInfo PlantDatabase::registeredTags[20] = {
     // Format: {{tag UID bytes}, associated plant}
-    {{0x04, 0x53, 0x45, 0x3B}, TOMATO},   // Tomate
-    {{0x04, 0x5B, 0x2B, 0x3B}, CUCUMBER}, // Gurke
-    {{0x04, 0xDA, 0x41, 0x3B}, POTATO},   // Kartoffel
-    {{0x04, 0xFF, 0x33, 0x3B}, CARROT},   // Karotte
-    // Add more pre-registered tags as needed
+    {{0x04, 0x53, 0x45, 0x3B}, TOMATO},
+    {{0x04, 0x5B, 0x2B, 0x3B}, CUCUMBER},
+    {{0x04, 0xDA, 0x41, 0x3B}, POTATO},
+    {{0x04, 0xFF, 0x33, 0x3B}, CARROT},
+    {{0x04, 0xCC, 0x25, 0x3B}, ONION},
+    {{0x04, 0xBD, 0x1B, 0x3B}, PEA},
+    {{0x04, 0x13, 0x16, 0x3B}, PEA},
 };
 
-uint8_t PlantDatabase::tagCount = 4;  // Number of pre-registered tags
+uint8_t PlantDatabase::tagCount = 7;  // Number of pre-registered tags
 
 void PlantDatabase::initialize() {
     // Any additional initialization can go here
