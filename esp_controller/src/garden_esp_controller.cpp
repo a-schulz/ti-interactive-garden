@@ -1,17 +1,29 @@
+#include <Arduino.h>
 #include <ESP8266WiFi.h>
 #include <ESP8266WebServer.h>
 #include <ArduinoJson.h>
 #include <FastLED.h>
 
 // FastLED configuration
-#define LED_PIN     D13 // GPIO2 (D13) on NodeMCU
-#define NUM_LEDS    72 // Increased to support 6x6 grid (72 LEDs)
 #define LED_TYPE    WS2812B
 #define COLOR_ORDER GRB
 
-// WiFi configuration
-const char* ssid = "InteractiveGarden";
-const char* password = "garden1234";
+// Use the values from platformio.ini or fallback to these defaults
+#ifndef LED_PIN
+  #define LED_PIN     D13 // GPIO2 (D13) on NodeMCU
+#endif
+
+#ifndef NUM_LEDS
+  #define NUM_LEDS    72 // For 6x6 grid (72 LEDs)
+#endif
+
+#ifndef WIFI_SSID
+  #define WIFI_SSID "InteractiveGarden"
+#endif
+
+#ifndef WIFI_PASSWORD
+  #define WIFI_PASSWORD "garden1234"
+#endif
 
 // Create web server and LED array
 ESP8266WebServer server(80);
@@ -101,7 +113,7 @@ void handleRoot() {
   html += "<div class='status'>";
   html += "<p>Status: Running</p>";
   html += "<p>LED Count: " + String(NUM_LEDS) + "</p>";
-  html += "<p>Access Point: " + String(ssid) + "</p>";
+  html += "<p>Access Point: " + String(WIFI_SSID) + "</p>";
   html += "</div>";
   html += "<p>This ESP controller provides a REST API to control the LED strip for the Interactive Garden project.</p>";
   html += "<p>Use the web application to interact with the garden or send POST requests directly to /api/led endpoint.</p>";
@@ -122,7 +134,7 @@ void setup() {
   FastLED.show();
   
   // Setup WiFi Access Point
-  WiFi.softAP(ssid, password);
+  WiFi.softAP(WIFI_SSID, WIFI_PASSWORD);
   IPAddress IP = WiFi.softAPIP();
   Serial.print("AP IP address: ");
   Serial.println(IP);
