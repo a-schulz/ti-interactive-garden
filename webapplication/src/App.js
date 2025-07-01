@@ -2,6 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { boardController } from './models/BoardController';
 import { plantDatabase } from './models/PlantDatabase';
 import { GAME_MODE, ENVIRONMENT } from './models/constants';
+import { 
+  ESP_CONFIG, 
+  getLedSegmentForGrid, 
+  statusToColor, 
+  sendLedCommand, 
+  clearAllLeds 
+} from './models/LedConfig';
 import './App.css';
 
 function App() {
@@ -9,11 +16,51 @@ function App() {
   const [infoContent, setInfoContent] = useState('');
   const [currentMode, setCurrentMode] = useState(boardController.currentGameMode);
   const [evaluations, setEvaluations] = useState({});
+  const [espEnabled, setEspEnabled] = useState(ESP_CONFIG.enabled);
+  const [espIpAddress, setEspIpAddress] = useState(ESP_CONFIG.ipAddress);
 
   // Initialize plant data and set up board
   useEffect(() => {
     setPlants(plantDatabase.getAllPlants());
   }, []);
+
+  // Toggle ESP control and update configuration
+  const toggleEspControl = () => {
+    const newState = !espEnabled;
+    setEspEnabled(newState);
+    ESP_CONFIG.enabled = newState;
+    
+    if (newState) {
+      setInfoContent(`<p>ESP LED control enabled. Connected to ${espIpAddress}</p>`);
+      // Update all LEDs based on current evaluations
+      Object.entries(evaluations).forEach(([plantId, evaluation]) => {
+        const { row, col, status } = evaluation;
+        updateEspLed(row, col, status);
+      });
+    } else {
+      setInfoContent(`<p>ESP LED control disabled.</p>`);
+      // Clear all LEDs when disabling
+      clearAllLeds();
+    }
+  };
+
+  // Update ESP IP address
+  const handleEspIpChange = (e) => {
+    const newIp = e.target.value;
+    setEspIpAddress(newIp);
+    ESP_CONFIG.ipAddress = newIp;
+  };
+
+  // Send LED update to ESP controller
+  const updateEspLed = (row, col, status) => {
+    if (!espEnabled) return;
+    
+    const segment = getLedSegmentForGrid(row, col);
+    const color = statusToColor(status);
+    
+    // Send command to ESP
+    sendLedCommand(segment, color);
+  };
 
   // Create a grid cell component
   const GridCell = ({ row, col }) => {
@@ -208,11 +255,22 @@ function App() {
     // Show evaluation for this plant
     const evaluation = boardController.evaluatePlant(plantId);
     showPlantEvaluation(evaluation);
+    
+    // Update ESP LED if enabled
+    updateEspLed(row, col, evaluation.status);
   };
 
   // Update evaluations for all plants on the grid
   const updateEvaluations = () => {
-    setEvaluations(boardController.evaluateAllPlants());
+    const newEvaluations = boardController.evaluateAllPlants();
+    setEvaluations(newEvaluations);
+    
+    // Update ESP LEDs for all plants
+    if (espEnabled) {
+      Object.entries(newEvaluations).forEach(([plantId, evaluation]) => {
+        updateEspLed(evaluation.row, evaluation.col, evaluation.status);
+      });
+    }
   };
 
   // Show evaluation results for a plant
@@ -298,6 +356,42 @@ function App() {
     }
   };
 
+  // Create ESP control panel component
+  const EspControlPanel = () => {
+    return (
+      <div className="bg-white rounded-lg shadow p-3 mt-4">
+        <h3 className="text-sm font-semibold mb-2">ESP LED Control</h3>
+        <div className="flex items-center justify-between mb-2">
+          <label className="inline-flex items-center cursor-pointer">
+            <input 
+              type="checkbox" 
+              checked={espEnabled} 
+              onChange={toggleEspControl} 
+              className="sr-only peer"
+            />
+            <div className="relative w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-green-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600"></div>
+            <span className="ml-3 text-sm font-medium text-gray-700">
+              {espEnabled ? 'Enabled' : 'Disabled'}
+            </span>
+          </label>
+        </div>
+        <div className="mb-2">
+          <label className="block text-xs mb-1">ESP IP Address:</label>
+          <input
+            type="text"
+            value={espIpAddress}
+            onChange={handleEspIpChange}
+            className="w-full px-2 py-1 text-sm border border-gray-300 rounded"
+            placeholder="192.168.4.1"
+          />
+        </div>
+        <div className="text-xs text-gray-500">
+          <p>When enabled, LED updates will be sent to the ESP controller.</p>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="app-container">
       <header className="mb-8 text-center">
@@ -350,6 +444,8 @@ function App() {
           </div>
           
           <EnvironmentLegend />
+          
+          <EspControlPanel />
           
           <div className="mt-6 text-sm">
             <h3 className="font-semibold mb-2">Tips:</h3>
