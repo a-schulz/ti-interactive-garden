@@ -4,8 +4,8 @@
 #include <FastLED.h>
 
 // FastLED configuration
-#define LED_PIN     D4 // GPIO2 (D4) on NodeMCU
-#define NUM_LEDS    60 // Adjust based on your LED strip length
+#define LED_PIN     D13 // GPIO2 (D13) on NodeMCU
+#define NUM_LEDS    72 // Increased to support 6x6 grid (72 LEDs)
 #define LED_TYPE    WS2812B
 #define COLOR_ORDER GRB
 
