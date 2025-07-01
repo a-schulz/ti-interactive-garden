@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { boardController } from './models/BoardController';
 import { plantDatabase } from './models/PlantDatabase';
-import { GAME_MODE } from './models/constants';
+import { GAME_MODE, ENVIRONMENT } from './models/constants';
 import './App.css';
 
 function App() {
@@ -55,6 +55,25 @@ function App() {
       }
     };
 
+    // Get environment icons for the cell
+    const getEnvironmentIcons = () => {
+      const env = cell.environment;
+      const lightIcon = env & ENVIRONMENT.SUNNY ? '☀️' : 
+                       env & ENVIRONMENT.PARTIAL_SHADE ? '🌤️' : 
+                       env & ENVIRONMENT.SHADE ? '☁️' : '';
+      
+      const moistureIcon = env & ENVIRONMENT.DRY ? '🏜️' : 
+                          env & ENVIRONMENT.MOIST ? '💧' : 
+                          env & ENVIRONMENT.WET ? '💦' : '';
+      
+      return (
+        <div className="absolute top-1 left-1 flex flex-col items-start">
+          <span className="text-xs">{lightIcon}</span>
+          <span className="text-xs">{moistureIcon}</span>
+        </div>
+      );
+    };
+
     return (
       <div 
         className={`grid-cell ${cell.environmentClasses.join(' ')}`}
@@ -63,6 +82,8 @@ function App() {
         onDoubleClick={handleDoubleClick}
         title={boardController.getEnvironmentDescription(row, col)}
       >
+        {getEnvironmentIcons()}
+        
         {plant && (
           <img 
             src={plant.imagePath} 
@@ -72,6 +93,35 @@ function App() {
           />
         )}
         {ledClass && <div className={`led-ring ${ledClass}`}></div>}
+      </div>
+    );
+  };
+
+  // Create an environment legend component
+  const EnvironmentLegend = () => {
+    return (
+      <div className="bg-white rounded-lg shadow p-3 mt-4">
+        <h3 className="text-sm font-semibold mb-2">Environment Legend</h3>
+        <div className="grid grid-cols-2 gap-2 text-xs">
+          <div className="flex items-center">
+            <span className="mr-1">☀️</span> Sunny
+          </div>
+          <div className="flex items-center">
+            <span className="mr-1">🏜️</span> Dry
+          </div>
+          <div className="flex items-center">
+            <span className="mr-1">🌤️</span> Partial Shade
+          </div>
+          <div className="flex items-center">
+            <span className="mr-1">💧</span> Moist
+          </div>
+          <div className="flex items-center">
+            <span className="mr-1">☁️</span> Shade
+          </div>
+          <div className="flex items-center">
+            <span className="mr-1">💦</span> Wet
+          </div>
+        </div>
       </div>
     );
   };
@@ -114,13 +164,13 @@ function App() {
   const getEnvironmentText = (environmentBits) => {
     const parts = [];
     
-    if (environmentBits & 1) parts.push('Sunny');
-    if (environmentBits & 2) parts.push('Partially Shaded');
-    if (environmentBits & 4) parts.push('Shaded');
+    if (environmentBits & ENVIRONMENT.SUNNY) parts.push('Sunny');
+    if (environmentBits & ENVIRONMENT.PARTIAL_SHADE) parts.push('Partially Shaded');
+    if (environmentBits & ENVIRONMENT.SHADE) parts.push('Shaded');
     
-    if (environmentBits & 8) parts.push('Dry');
-    if (environmentBits & 16) parts.push('Moist');
-    if (environmentBits & 32) parts.push('Wet');
+    if (environmentBits & ENVIRONMENT.DRY) parts.push('Dry');
+    if (environmentBits & ENVIRONMENT.MOIST) parts.push('Moist');
+    if (environmentBits & ENVIRONMENT.WET) parts.push('Wet');
     
     return parts.join(', ');
   };
@@ -298,6 +348,8 @@ function App() {
               <PlantItem key={plant.id} plant={plant} />
             ))}
           </div>
+          
+          <EnvironmentLegend />
           
           <div className="mt-6 text-sm">
             <h3 className="font-semibold mb-2">Tips:</h3>

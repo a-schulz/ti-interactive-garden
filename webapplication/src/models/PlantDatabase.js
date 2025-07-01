@@ -17,7 +17,7 @@ class PlantDatabase {
     const tomato = new Plant(
       'tomato',
       'Tomato',
-      '/images/tomato.png', // Will add images to public/images folder
+      '/images/tomato.png',
       ENVIRONMENT.PARTIALLY_SHADED | ENVIRONMENT.WET,
       ENVIRONMENT.PARTIALLY_SHADED | ENVIRONMENT.WET | ENVIRONMENT.MOIST
     );

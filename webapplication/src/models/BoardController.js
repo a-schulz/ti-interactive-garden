@@ -13,20 +13,53 @@ class BoardController {
     this.plants = {}; // Plants placed on the grid
     this.currentGameMode = GAME_MODE.ENVIRONMENT_MODE;
     
-    // Create the grid data structure
+    // Create the grid data structure with predefined environments
     this.initializeGrid();
   }
   
-  // Initialize the grid with random environments
+  // Initialize the grid with predefined environments
   initializeGrid() {
     this.grid = [];
+    
+    // Predefined environment settings - 4x4 grid
+    // Each cell has a defined light condition and moisture level
+    const predefinedEnvironments = [
+      // Row 0
+      [
+        { light: ENVIRONMENT.SUNNY, moisture: ENVIRONMENT.DRY },
+        { light: ENVIRONMENT.SUNNY, moisture: ENVIRONMENT.MOIST },
+        { light: ENVIRONMENT.SUNNY, moisture: ENVIRONMENT.WET },
+        { light: ENVIRONMENT.PARTIAL_SHADE, moisture: ENVIRONMENT.DRY }
+      ],
+      // Row 1
+      [
+        { light: ENVIRONMENT.SUNNY, moisture: ENVIRONMENT.MOIST },
+        { light: ENVIRONMENT.PARTIAL_SHADE, moisture: ENVIRONMENT.MOIST },
+        { light: ENVIRONMENT.PARTIAL_SHADE, moisture: ENVIRONMENT.WET },
+        { light: ENVIRONMENT.SHADE, moisture: ENVIRONMENT.MOIST }
+      ],
+      // Row 2
+      [
+        { light: ENVIRONMENT.PARTIAL_SHADE, moisture: ENVIRONMENT.DRY },
+        { light: ENVIRONMENT.PARTIAL_SHADE, moisture: ENVIRONMENT.MOIST },
+        { light: ENVIRONMENT.SHADE, moisture: ENVIRONMENT.MOIST },
+        { light: ENVIRONMENT.SHADE, moisture: ENVIRONMENT.WET }
+      ],
+      // Row 3
+      [
+        { light: ENVIRONMENT.SUNNY, moisture: ENVIRONMENT.WET },
+        { light: ENVIRONMENT.PARTIAL_SHADE, moisture: ENVIRONMENT.DRY },
+        { light: ENVIRONMENT.SHADE, moisture: ENVIRONMENT.DRY },
+        { light: ENVIRONMENT.SHADE, moisture: ENVIRONMENT.MOIST }
+      ]
+    ];
     
     for (let row = 0; row < this.rows; row++) {
       this.grid[row] = [];
       for (let col = 0; col < this.cols; col++) {
-        // Randomly assign environments to cells
-        const lightCondition = this.getRandomLightCondition();
-        const moistureCondition = this.getRandomMoistureCondition();
+        const cellEnv = predefinedEnvironments[row][col];
+        const lightCondition = cellEnv.light;
+        const moistureCondition = cellEnv.moisture;
         
         this.grid[row][col] = {
           row: row,
@@ -330,6 +363,38 @@ class BoardController {
     else if (moisture === ENVIRONMENT.WET) moistureDesc = 'Wet';
     
     return `${lightDesc}, ${moistureDesc}`;
+  }
+  
+  // Update the grid with a new predefined layout
+  updateGridLayout(environmentLayout) {
+    if (!environmentLayout || 
+        environmentLayout.length !== this.rows || 
+        environmentLayout[0].length !== this.cols) {
+      console.error('Invalid environment layout');
+      return false;
+    }
+    
+    // Clear existing plants
+    this.plants = {};
+    
+    // Apply the new layout
+    for (let row = 0; row < this.rows; row++) {
+      for (let col = 0; col < this.cols; col++) {
+        const cellEnv = environmentLayout[row][col];
+        const lightCondition = cellEnv.light;
+        const moistureCondition = cellEnv.moisture;
+        
+        this.grid[row][col] = {
+          row: row,
+          col: col,
+          environment: lightCondition | moistureCondition,
+          plantId: null,
+          environmentClasses: this.getEnvironmentClasses(lightCondition, moistureCondition)
+        };
+      }
+    }
+    
+    return true;
   }
 }
 
