@@ -685,3 +685,71 @@ void BoardController::displayGameMode() {
         }
     }
 }
+
+void BoardController::optimizeRFIDReaders() {
+    Serial.println(F("Optimizing RFID readers for NXP Ultra NFC tags..."));
+    
+    for (uint8_t i = 0; i < NUM_READERS; i++) {
+        // Initialize the reader
+        setRFIDMaxGain(i);
+    }
+    
+    Serial.println(F("RFID readers optimized for maximum reading distance"));
+}
+
+void BoardController::setRFIDMaxGain(uint8_t readerNum) {
+    if (readerNum >= NUM_READERS) return;
+    
+    // Initialize appropriate reader with its MISO pin
+    switch (readerNum) {
+        case 0:
+            readers[readerNum].begin(COMMON_SS_PIN, 13, 11, MISO_PIN1, COMMON_SS_PIN, COMMON_RST_PIN);
+            break;
+        case 1:
+            readers[readerNum].begin(COMMON_SS_PIN, 13, 11, MISO_PIN2, COMMON_SS_PIN, COMMON_RST_PIN);
+            break;
+        case 2:
+            readers[readerNum].begin(COMMON_SS_PIN, 13, 11, MISO_PIN3, COMMON_SS_PIN, COMMON_RST_PIN);
+            break;
+        case 3:
+            readers[readerNum].begin(COMMON_SS_PIN, 13, 11, MISO_PIN4, COMMON_SS_PIN, COMMON_RST_PIN);
+            break;
+        case 4:
+            readers[readerNum].begin(COMMON_SS_PIN, 13, 11, MISO_PIN5, COMMON_SS_PIN, COMMON_RST_PIN);
+            break;
+        case 5:
+            readers[readerNum].begin(COMMON_SS_PIN, 13, 11, MISO_PIN6, COMMON_SS_PIN, COMMON_RST_PIN);
+            break;
+        default:
+            return;
+    }
+    
+    // Initialize the RFID reader
+    readers[readerNum].init();
+    
+    // Enhanced settings for better reading distance
+    // Set maximum receiver gain (RFCfgReg, 0x26)
+    readers[readerNum].writeTo(0x26 << 1, 0x7F); // Highest gain setting (48dB)
+    
+    // Increase modulation depth (TxASKReg, 0x15)
+    readers[readerNum].writeTo(0x15 << 1, 0x40); // 100% ASK modulation
+    
+    // Tune the antenna circuit (ModWidthReg, 0x24)
+    readers[readerNum].writeTo(0x24 << 1, 0x26);
+    
+    // Optimize receiver settings (RxSelReg, 0x17)
+    readers[readerNum].writeTo(0x17 << 1, 0x86);
+    
+    // Ensure the antenna is on
+    readers[readerNum].antennaOn();
+    
+    // Reset any pending commands
+    readers[readerNum].reset();
+    
+    // Small delay to allow settings to take effect
+    delay(50);
+    
+    Serial.print(F("Reader #"));
+    Serial.print(readerNum + 1);
+    Serial.println(F(" optimized for NXP Ultra tags"));
+}

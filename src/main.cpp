@@ -31,6 +31,9 @@ void setup() {
     // Note: BoardController::begin() will call PlantDatabase::initialize()
     garden.begin();
     
+    // Optimize RFID readers for NXP Ultra NFC tags to improve reading distance
+    garden.optimizeRFIDReaders();
+    
     // Place readers as neighbors (adjacent positions) to properly test plant relationships
     garden.placeReader(1, 2, 0, PARTIALLY_SHADED | DRY);         // Reader 1: Sunny and Dry (Potato tolerates it, Tomato dislikes)
     garden.placeReader(2, 4, 0, PARTIALLY_SHADED | DRY);       // Reader 2: Sunny and Moist (Tomato thrives, Potato tolerates)

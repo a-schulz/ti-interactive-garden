@@ -75,6 +75,10 @@ public:
     
     // Direct LED control for testing
     void setRingColor(uint8_t readerNum, uint8_t r, uint8_t g, uint8_t b);
+    
+    // RFID Reader optimization
+    void optimizeRFIDReaders();
+    void setRFIDMaxGain(uint8_t readerNum);
 
 private:
     // Changed from MFRC522 to RFID1
