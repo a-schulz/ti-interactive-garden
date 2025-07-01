@@ -2,16 +2,203 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Interactive Garden Styles */
+:root {
+  --cell-size: 100px;
+  --light-green: #a7c957;
+  --dark-green: #6a994e;
+  --soil-color: #8b6c5c;
+}
+
 body {
   margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-code {
-  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
-    monospace;
+/* Layout */
+.app-container {
+  @apply container mx-auto px-4 py-8;
+}
+
+.game-area {
+  @apply flex flex-col lg:flex-row gap-6;
+}
+
+/* Board Grid */
+.board-container {
+  @apply flex-1 min-w-0;
+}
+
+.board-header {
+  @apply flex justify-between items-center mb-4;
+}
+
+.board-grid {
+  @apply grid grid-cols-4 gap-2 bg-green-100 p-4 rounded-lg shadow-md;
+  aspect-ratio: 1 / 1;
+}
+
+/* Grid Cells */
+.grid-cell {
+  @apply relative bg-green-50 rounded-md shadow-inner flex items-center justify-center cursor-pointer;
+  transition: all 0.2s ease-in-out;
+}
+
+.grid-cell:hover {
+  @apply bg-green-200;
+}
+
+.cell-highlight {
+  @apply ring-4 ring-blue-400;
+}
+
+/* Environment classes for grid cells */
+.sunny {
+  @apply bg-yellow-100;
+}
+
+.partial-shade {
+  @apply bg-green-50;
+}
+
+.shade {
+  @apply bg-blue-100;
+}
+
+.dry {
+  @apply border-2 border-yellow-500;
+}
+
+.moist {
+  @apply border-2 border-green-500;
+}
+
+.wet {
+  @apply border-2 border-blue-500;
+}
+
+/* Plant items */
+.plant-palette {
+  @apply flex flex-wrap gap-2 mt-4;
+}
+
+.plant-item {
+  @apply relative flex flex-col items-center p-2 border border-green-500 rounded-lg bg-white cursor-grab;
+  transition: all 0.15s ease;
+  width: 80px;
+  height: 100px;
+}
+
+.plant-item:hover {
+  @apply transform scale-105 shadow-md;
+}
+
+.plant-image {
+  @apply w-12 h-12 object-contain;
+}
+
+.plant-name {
+  @apply text-xs text-center mt-1;
+}
+
+.plant-on-grid {
+  @apply absolute w-10 h-10 object-contain z-10;
+}
+
+/* LED ring effect for feedback */
+.led-ring {
+  @apply absolute inset-0 rounded-full opacity-75 z-0;
+  animation: pulse 2s infinite;
+  transform: scale(0.9);
+}
+
+.led-ring.green {
+  @apply bg-green-400;
+}
+
+.led-ring.red {
+  @apply bg-red-400;
+}
+
+.led-ring.white {
+  @apply bg-gray-200;
+}
+
+@keyframes pulse {
+  0% {
+    transform: scale(0.9);
+    opacity: 0.7;
+  }
+  50% {
+    transform: scale(1);
+    opacity: 0.9;
+  }
+  100% {
+    transform: scale(0.9);
+    opacity: 0.7;
+  }
+}
+
+/* Info panel */
+.info-panel {
+  @apply bg-white rounded-lg shadow-md p-4 mt-4;
+  min-height: 120px;
+}
+
+.info-header {
+  @apply text-lg font-semibold text-green-800 mb-2;
+}
+
+.info-content {
+  @apply text-sm text-gray-700;
+}
+
+.evaluation-status {
+  @apply px-3 py-1 rounded-full text-white inline-flex items-center gap-2 mb-2;
+}
+
+.evaluation-status.happy {
+  @apply bg-green-500;
+}
+
+.evaluation-status.neutral {
+  @apply bg-gray-500;
+}
+
+.evaluation-status.unhappy {
+  @apply bg-red-500;
+}
+
+.environment-info {
+  @apply flex items-center gap-2 text-sm;
+}
+
+.environment-icon {
+  @apply w-4 h-4;
+}
+
+/* Game mode toggle */
+.mode-toggle {
+  @apply px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-md;
+}
+
+.current-mode {
+  @apply text-sm text-gray-600 mt-2;
+}
+
+/* Media queries */
+@media (max-width: 768px) {
+  .game-area {
+    @apply flex-col;
+  }
+  
+  .plant-palette {
+    @apply flex-wrap justify-center;
+  }
+  
+  .board-grid {
+    @apply grid-cols-3 gap-2;
+  }
 }
